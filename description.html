@@ -1,107 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Description - Ultracold Matter Lab</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #f9f9f9;
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-    }
-
-    /* Navigation bar */
-    .navbar {
-      background-color: #ffffff;
-      color: #003366;
-      padding: 1rem 2rem;
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-      border-bottom: 2px solid #ccc;
-    }
-
-    .nav-links a {
-      color: #003366;
-      text-decoration: none;
-      margin-left: 1.5rem;
-      font-weight: 600;
-    }
-
-    .nav-links a:hover {
-      text-decoration: underline;
-    }
-
-    /* Header */
-    .lab-header {
-      background-color: #004080;
-      color: white;
-      padding: 1.5rem;
-      text-align: center;
-      font-size: 1.8rem;
-      font-weight: bold;
-      border-top: 4px solid #002244;
-      border-bottom: 4px solid #002244;
-    }
-
-    .sub-header {
-      text-align: center;
-      font-size: 0.9rem;
-      color: #444;
-      padding: 0.5rem 1rem;
-    }
-
-    /* Main content */
-    .main-content {
-      flex: 1;
-      padding: 2rem;
-      max-width: 800px;
-      margin: auto;
-      font-size: 1.1rem;
-      color: #222;
-      line-height: 1.6;
-    }
-
-    /* Footer */
-    .footer {
-      background-color: #003366;
-      height: 60px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>Project Description</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+        h1 {
+            color: #444;
+        }
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            text-decoration: none;
+            color: #0066cc;
+            border: 1px solid #0066cc;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        a:hover {
+            background-color: #0066cc;
+            color: white;
+        }
+    </style>
 </head>
 <body>
-
-  <!-- Navigation Bar -->
-  <div class="navbar">
-    <div class="nav-links">
-      <a href="index.html">Home</a>
-      <a href="description.html">Description</a>
-      <a href="dashboard-temp-humidity.html">Live Dashboard - Temperature & Humidity</a>
-      <a href="dashboard-safety.html">Live Dashboard - Safety Monitoring</a>
-    </div>
-  </div>
-
-  <!-- Header -->
-  <div class="lab-header">
-    ULTRACOLD MATTER LAB
-  </div>
-
-  <div class="sub-header">
-    Hemvati Nandan Bahuguna Garhwal University (A Central University), Srinagar, Uttarakhand, India (249161)
-  </div>
-
-  <!-- Main Content -->
-  <div class="main-content">
-    <p>This is an online desk where live monitoring of our lab would be displayed.</p>
-    <p>We have made a real-time online temperature & humidity sensor using a DHT11 sensor and ESP32 Wi-Fi module.</p>
-  </div>
-
-  <!-- Footer -->
-  <div class="footer"></div>
-
+    <h1>Description of the Project</h1>
+    <p>
+        This website is a part of the <strong>Ultracold Matter Lab</strong> project. It is built using GitHub Pages and showcases real-time dashboards for temperature and humidity monitoring using DHT11 sensors and ESP32 microcontrollers.
+    </p>
+    <p>
+        The project features:
+        <ul>
+            <li>Live data streaming via MQTT to InfluxDB</li>
+            <li>Custom Grafana dashboards for real-time monitoring</li>
+            <li>Web interface hosted on GitHub</li>
+        </ul>
+    </p>
+    <a href="index.html">← Back to Home</a>
 </body>
 </html>
