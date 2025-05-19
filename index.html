@@ -11,51 +11,61 @@
       background-color: #f9f9f9;
     }
 
-    /* Top navigation bar */
+    /* Navigation Bar */
     .navbar {
-      background-color: #003366;
-      color: white;
+      background-color: white;
       padding: 1rem 2rem;
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-end;
       align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .nav-title {
-      font-weight: bold;
-      font-size: 1.2rem;
+      border-bottom: 2px solid #c0c0c0;
     }
 
     .nav-links a {
-      color: white;
+      color: #003366;
       text-decoration: none;
-      margin-left: 1.5rem;
-      font-weight: 500;
+      margin-left: 2rem;
+      font-weight: 600;
+      font-size: 1rem;
     }
 
     .nav-links a:hover {
       text-decoration: underline;
     }
 
-    /* Thick bold bar for lab title */
+    /* Lab Title */
     .lab-header {
       background-color: #004080;
       color: white;
       padding: 1.5rem;
       text-align: center;
-      font-size: 1.8rem;
+      font-size: 2rem;
       font-weight: bold;
       border-top: 4px solid #002244;
       border-bottom: 4px solid #002244;
     }
 
-    /* Subtitle below the title */
+    /* University Subtitle */
     .sub-header {
       text-align: center;
       font-size: 0.9rem;
       color: #444;
       padding: 0.5rem 1rem;
+    }
+
+    /* Body Content */
+    .main-content {
+      padding: 2rem;
+      text-align: center;
+      font-size: 1.1rem;
+      color: #222;
+    }
+
+    /* Footer */
+    footer {
+      background-color: #003366;
+      height: 60px;
+      margin-top: 2rem;
     }
   </style>
 </head>
@@ -63,7 +73,6 @@
 
   <!-- Navigation Bar -->
   <div class="navbar">
-    <div class="nav-title">Navigation</div>
     <div class="nav-links">
       <a href="index.html">Home</a>
       <a href="#description">Description</a>
@@ -72,15 +81,23 @@
     </div>
   </div>
 
-  <!-- Lab Title Bar -->
+  <!-- Lab Header -->
   <div class="lab-header">
     ULTRACOLD MATTER LAB
   </div>
 
-  <!-- University Subtitle -->
+  <!-- Sub Header -->
   <div class="sub-header">
     Hemvati Nandan Bahuguna Garhwal University (A Central University), Srinagar, Uttarakhand, India (249161)
   </div>
+
+  <!-- Welcome Content -->
+  <div class="main-content">
+    Welcoming you to our Ultracold Matter Lab.
+  </div>
+
+  <!-- Footer -->
+  <footer></footer>
 
 </body>
 </html>
