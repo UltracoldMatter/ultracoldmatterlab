@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Live Dashboard – Safety Monitoring</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #333;
+        }
+        iframe {
+            border: none;
+            width: 100%;
+            height: 500px;
+            margin-bottom: 30px;
+        }
+        .serial-monitor {
+            background-color: #000;
+            color: #0f0;
+            padding: 15px;
+            font-family: monospace;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        nav {
+            margin-bottom: 20px;
+        }
+        nav a {
+            text-decoration: none;
+            margin-right: 15px;
+            color: #0066cc;
+        }
+        nav a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Live Dashboard – Safety Monitoring</h1>
+
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="description.html">Description</a>
+        <a href="dashboard-temp-humidity.html">Live Dashboard – Temp & Humidity</a>
+    </nav>
+
+    <!-- Replace src URL below with your combined Grafana panel link -->
+    <iframe src="https://YOUR-GRAFANA-LINK-HERE" title="Combined Panel: Temp + Humidity"></iframe>
+
+    <h2>Serial Monitor</h2>
+    <div class="serial-monitor">
+        Sensor 1 → Temp: 25°C | Humidity: 45%<br>
+        Sensor 2 → Temp: 26°C | Humidity: 48%<br>
+        Sensor 3 → Temp: 24°C | Humidity: 42%<br>
+        Sensor 4 → Temp: 25°C | Humidity: 44%<br>
+        Sensor 5 → Temp: 27°C | Humidity: 46%<br>
+        Sensor 6 → Temp: 25°C | Humidity: 47%<br>
+        [Live data will appear here from MQTT/InfluxDB backend...]
+    </div>
+
+</body>
+</html>
