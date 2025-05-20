@@ -1,194 +1,156 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Ultra-cold Lab Live Dashboard</title>
+  <meta charset="UTF-8" />
+  <title>Ultracold Matter Lab Live Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
   <style>
     body {
-      display: flex;
-      font-family: sans-serif;
-      background: #f4f4f4;
-    }
-    .left {
-      flex: 3;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      margin: 0;
       padding: 20px;
     }
-    .right {
-      flex: 1;
-      padding: 20px;
-      border-left: 1px solid #ccc;
+    h2 {
+      color: #333;
     }
-    .status {
+    .card {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
       margin-bottom: 20px;
     }
-    .status span {
-      display: inline-block;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      margin-right: 5px;
+    #status {
+      font-weight: bold;
+      color: green;
     }
-    #serialMonitor {
-      background: black;
-      color: lime;
+    .log {
+      background: #111;
+      color: #0f0;
       padding: 10px;
-      height: 200px;
-      overflow-y: scroll;
-      white-space: pre-wrap;
+      font-family: monospace;
+      height: 150px;
+      overflow-y: auto;
+      border-radius: 8px;
+    }
+    canvas {
+      max-width: 100%;
     }
   </style>
 </head>
 <body>
-  <div class="left">
-    <h2>Live Temperature & Humidity</h2>
-    <canvas id="sensorChart" height="150"></canvas>
-    <div>
-      <label>Time Window: </label>
-      <select id="timeWindow">
-        <option value="5">Last 5 min</option>
-        <option value="15">Last 15 min</option>
-        <option value="30">Last 30 min</option>
-        <option value="60">Last 60 min</option>
-      </select>
-    </div>
-    <div id="sensorToggles"></div>
-    <h3>Serial Monitor</h3>
-    <div id="serialMonitor">Waiting for data...</div>
+
+  <h2>🌡️ Ultracold Matter Lab – Live Temperature & Humidity</h2>
+
+  <div class="card">
+    <p>Status: <span id="status">Connecting...</span></p>
+    <p>Last Update: <span id="timestamp">--</span></p>
   </div>
-  <div class="right">
-    <h3>Sensor Status</h3>
-    <div id="statusPanel"></div>
+
+  <div class="card">
+    <canvas id="liveChart" height="100"></canvas>
+  </div>
+
+  <div class="card">
+    <h3>📟 Serial Monitor</h3>
+    <div class="log" id="logOutput">Waiting for data...</div>
   </div>
 
   <script>
+    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyATktR2jpo9ghUY0_MqpZh_KP5jrW-6YZE",
       authDomain: "ultracoldmatterlablive.firebaseapp.com",
       databaseURL: "https://ultracoldmatterlablive-default-rtdb.asia-southeast1.firebasedatabase.app",
       projectId: "ultracoldmatterlablive",
-      storageBucket: "ultracoldmatterlablive.appspot.com",
+      storageBucket: "ultracoldmatterlablive.firebasestorage.app",
       messagingSenderId: "75894080963",
       appId: "1:75894080963:web:cfa41a9bd08d4f567f6976"
     };
+
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const sensorChart = new Chart(document.getElementById("sensorChart"), {
+    const statusEl = document.getElementById('status');
+    const timestampEl = document.getElementById('timestamp');
+    const logEl = document.getElementById('logOutput');
+
+    const ctx = document.getElementById('liveChart').getContext('2d');
+    const chart = new Chart(ctx, {
       type: 'line',
-      data: { labels: [], datasets: [] },
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: 'Temperature (°C)',
+            data: [],
+            borderColor: 'red',
+            fill: false,
+            tension: 0.2
+          },
+          {
+            label: 'Humidity (%)',
+            data: [],
+            borderColor: 'blue',
+            fill: false,
+            tension: 0.2
+          }
+        ]
+      },
       options: {
         responsive: true,
-        interaction: { mode: 'index', intersect: false },
-        plugins: { legend: { position: 'bottom' } },
         scales: {
-          x: { type: 'time', time: { unit: 'minute' } },
-          y: { title: { display: true, text: 'Value' } }
+          x: {
+            title: { display: true, text: 'Time' }
+          },
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: 'Value' }
+          }
         }
       }
     });
 
-    const sensorColors = ['red', 'blue', 'green', 'orange', 'purple', 'brown'];
-    const serialMonitor = document.getElementById("serialMonitor");
-    const statusPanel = document.getElementById("statusPanel");
-    const sensorToggles = document.getElementById("sensorToggles");
-    const timeWindow = document.getElementById("timeWindow");
-    let sensors = Array.from({length: 6}, (_, i) => `sensor${i+1}`);
-    let latestData = {};
-
-    function createDatasets() {
-      sensorChart.data.datasets = [];
-      sensors.forEach((sensor, i) => {
-        const color = sensorColors[i];
-        sensorChart.data.datasets.push(
-          { label: `${sensor} Temp`, data: [], borderColor: color, backgroundColor: color, hidden: false },
-          { label: `${sensor} Hum`, data: [], borderColor: color, backgroundColor: color, borderDash: [5,5], hidden: false, opacity: 0.5 }
-        );
-      });
+    function updateLog(temp, hum, time) {
+      const msg = `[${time}] Temp: ${temp}°C, Humidity: ${hum}%\n`;
+      logEl.textContent += msg;
+      logEl.scrollTop = logEl.scrollHeight;
     }
 
-    function updateChart(sensor, temp, hum, timestamp) {
-      const t = new Date(timestamp);
-      const tempDataset = sensorChart.data.datasets.find(d => d.label === `${sensor} Temp`);
-      const humDataset = sensorChart.data.datasets.find(d => d.label === `${sensor} Hum`);
-      if (tempDataset && humDataset) {
-        tempDataset.data.push({x: t, y: parseFloat(temp)});
-        humDataset.data.push({x: t, y: parseFloat(hum)});
-        // Trim to time window
-        const minutes = parseInt(timeWindow.value);
-        const cutoff = Date.now() - minutes * 60 * 1000;
-        tempDataset.data = tempDataset.data.filter(p => new Date(p.x).getTime() > cutoff);
-        humDataset.data = humDataset.data.filter(p => new Date(p.x).getTime() > cutoff);
+    function updateChart(temp, hum) {
+      const now = new Date().toLocaleTimeString();
+      const data = chart.data;
+      data.labels.push(now);
+      if (data.labels.length > 20) {
+        data.labels.shift();
+        data.datasets[0].data.shift();
+        data.datasets[1].data.shift();
       }
-      sensorChart.update();
+      data.datasets[0].data.push(temp);
+      data.datasets[1].data.push(hum);
+      chart.update();
     }
 
-    function updateSerialMonitor(logEntry) {
-      const lines = serialMonitor.textContent.split('\n');
-      if (lines.length >= 10) lines.shift();
-      lines.push(logEntry);
-      serialMonitor.textContent = lines.join('\n');
-      serialMonitor.scrollTop = serialMonitor.scrollHeight;
-    }
+    // Listen to DB
+    db.ref('sensor').on('value', (snapshot) => {
+      const data = snapshot.val();
+      const temperature = parseFloat(data.temperature);
+      const humidity = parseFloat(data.humidity);
+      const now = new Date().toLocaleString();
 
-    function updateStatus(sensor, timestamp) {
-      const now = Date.now();
-      const updated = new Date(timestamp).getTime();
-      const age = now - updated;
-      const dot = age < 60000 ? 'green' : (age < 300000 ? 'red' : 'black');
-      document.getElementById(`${sensor}_status`).innerHTML =
-        `<span style='background:${dot}'></span>${sensor} <br><small>${new Date(timestamp).toLocaleTimeString()}</small>`;
-    }
+      statusEl.textContent = "🟢 Live";
+      timestampEl.textContent = now;
 
-    function setupUI() {
-      sensors.forEach(sensor => {
-        const cb = document.createElement("input");
-        cb.type = "checkbox";
-        cb.id = sensor;
-        cb.checked = true;
-        cb.onchange = () => {
-          const tempDataset = sensorChart.data.datasets.find(d => d.label === `${sensor} Temp`);
-          const humDataset = sensorChart.data.datasets.find(d => d.label === `${sensor} Hum`);
-          if (tempDataset && humDataset) {
-            tempDataset.hidden = humDataset.hidden = !cb.checked;
-            sensorChart.update();
-          }
-        };
-        const label = document.createElement("label");
-        label.appendChild(cb);
-        label.appendChild(document.createTextNode(" "+sensor));
-        sensorToggles.appendChild(label);
-        sensorToggles.appendChild(document.createElement("br"));
-
-        const stat = document.createElement("div");
-        stat.id = `${sensor}_status`;
-        stat.className = "status";
-        statusPanel.appendChild(stat);
-      });
-    }
-
-    function listenToFirebase() {
-      db.ref("sensorData").limitToLast(100).on("child_added", snap => {
-        const d = snap.val();
-        const { sensorId, temperature, humidity, timestamp } = d;
-        if (!sensors.includes(sensorId)) return;
-
-        latestData[sensorId] = timestamp;
-        updateChart(sensorId, temperature, humidity, timestamp);
-        updateSerialMonitor(`[${timestamp}] ${sensorId} → Temp: ${temperature}°C, Hum: ${humidity}%`);
-        updateStatus(sensorId, timestamp);
-      });
-    }
-
-    timeWindow.onchange = () => {
-      createDatasets();
-      sensorChart.update();
-    };
-
-    setupUI();
-    createDatasets();
-    listenToFirebase();
+      updateChart(temperature, humidity);
+      updateLog(temperature, humidity, now);
+    }, (error) => {
+      statusEl.textContent = "🔴 Error connecting!";
+      console.error(error);
+    });
   </script>
+
 </body>
 </html>
