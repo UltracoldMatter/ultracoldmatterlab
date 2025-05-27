@@ -286,7 +286,7 @@ const tempCtx = document.getElementById('tempChart').getContext('2d');
 const humCtx  = document.getElementById('humChart').getContext('2d');
 let tempChart, humChart;
 function buildChart(ctx, datasets, isTemp) {
-  const borderWidths = isTemp ? 8 : 4; // thick for temp, thinner for hum
+  const borderWidths = isTemp ? 8 : 4;
   const borderDash   = isTemp ? [] : [8,6];
   return new Chart(ctx, {
     type: 'line',
@@ -321,6 +321,10 @@ function buildChart(ctx, datasets, isTemp) {
           titleFont: { size: 16 },
           bodyFont: { size: 15 }
         }
+      },
+      interaction: {
+        mode: 'nearest',
+        intersect: false
       },
       scales: {
         x: {
@@ -485,7 +489,7 @@ function updateHumSerial() {
 
 // --- Status Panel ---
 function updateStatusPanel() {
-  // Global status
+  // Global status: ONLINE if any sensor is online
   const allOnline = sensorIds.some(sid => sensorOnline[sid]);
   document.getElementById('stream-status').textContent = allOnline ? "ONLINE" : "OFFLINE";
   document.getElementById('stream-status').className = allOnline ? "status-online" : "status-offline";
