@@ -71,6 +71,17 @@ body {
 	font-size: 1rem;
 	margin-left: 0.5rem;
 }
+.top-bar .checkbox-group label {
+	color: #003366;
+	font-weight: 600;
+	margin-right: 1.2rem;
+	cursor: pointer;
+	user-select: none;
+}
+.top-bar .checkbox-group input[type="checkbox"] {
+	accent-color: #003366;
+	margin-right: 0.3em;
+}
 .main-panel {
 	max-width: 1200px;
 	margin: 0 auto;
@@ -132,12 +143,12 @@ Hemvati Nandan Bahuguna Garhwal University (A Central University), Srinagar, Utt
 <!-- Top Controls -->
 <div class="top-bar">
 	<div class="checkbox-group" id="sensor-checkboxes">
-		<label><input type="checkbox" value="sensor1" checked> Sensor 1</label>
-		<label><input type="checkbox" value="sensor2" checked> Sensor 2</label>
-		<label><input type="checkbox" value="sensor3" checked> Sensor 3</label>
-		<label><input type="checkbox" value="sensor4" checked> Sensor 4</label>
-		<label><input type="checkbox" value="sensor5" checked> Sensor 5</label>
-		<label><input type="checkbox" value="sensor6" checked> Sensor 6</label>
+		<label style="color:#FF6384;"><input type="checkbox" value="sensor1" checked> Sensor 1</label>
+		<label style="color:#36A2EB;"><input type="checkbox" value="sensor2" checked> Sensor 2</label>
+		<label style="color:#FFCE56;"><input type="checkbox" value="sensor3" checked> Sensor 3</label>
+		<label style="color:#4BC0C0;"><input type="checkbox" value="sensor4" checked> Sensor 4</label>
+		<label style="color:#9966FF;"><input type="checkbox" value="sensor5" checked> Sensor 5</label>
+		<label style="color:#FF9F40;"><input type="checkbox" value="sensor6" checked> Sensor 6</label>
 	</div>
 	<div class="dropdown-group">
 		<label for="time-range" style="font-weight:600;color:#003366;">Time Range:</label>
@@ -177,15 +188,24 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// --- Sensor IDs and Colors ---
+// --- Sensor IDs and Fixed Colors ---
 const sensorIds = ['sensor1', 'sensor2', 'sensor3', 'sensor4', 'sensor5', 'sensor6'];
 const sensorColors = [
-	'rgba(255,99,132,1)',   // Red
-	'rgba(54,162,235,1)',   // Blue
-	'rgba(255,206,86,1)',   // Yellow
-	'rgba(75,192,192,1)',   // Green
-	'rgba(153,102,255,1)',  // Purple
-	'rgba(255,159,64,1)'    // Orange
+	'rgba(255,99,132,1)',   // Sensor 1 - Red
+	'rgba(54,162,235,1)',   // Sensor 2 - Blue
+	'rgba(255,206,86,1)',   // Sensor 3 - Yellow
+	'rgba(75,192,192,1)',   // Sensor 4 - Green
+	'rgba(153,102,255,1)',  // Sensor 5 - Purple
+	'rgba(255,159,64,1)'    // Sensor 6 - Orange
+];
+// For label coloring (hex)
+const sensorLabelColors = [
+	'#FF6384', // Sensor 1
+	'#36A2EB', // Sensor 2
+	'#FFCE56', // Sensor 3
+	'#4BC0C0', // Sensor 4
+	'#9966FF', // Sensor 5
+	'#FF9F40'  // Sensor 6
 ];
 
 // --- Data Structures ---
@@ -286,13 +306,14 @@ function mixWhite(color, percent) {
 
 // --- Helper: Format Datasets for Chart.js ---
 function prepareChartData() {
-	const selectedSensors = sensorCheckboxes.filter(cb => cb.checked).map(cb => cb.value);
+	const selectedSensors = sensorIds.filter((_, idx) => sensorCheckboxes[idx].checked);
 	const now = new Date();
 	const rangeMinutes = parseInt(timeRangeSelect.value);
 	const minTime = new Date(now.getTime() - rangeMinutes*60000);
 
 	const datasets = [];
 	selectedSensors.forEach((sensorId, idx) => {
+		const colorIdx = sensorIds.indexOf(sensorId); // Always use fixed color
 		const tempData = [];
 		const humData = [];
 		if (allData[sensorId]) {
@@ -312,8 +333,8 @@ function prepareChartData() {
 		datasets.push({
 			label: `Temp (${sensorId.replace('sensor','Sensor ')})`,
 			data: tempData,
-			borderColor: sensorColors[idx],
-			backgroundColor: sensorColors[idx].replace('1)', '0.1)'),
+			borderColor: sensorColors[colorIdx],
+			backgroundColor: sensorColors[colorIdx].replace('1)', '0.1)'),
 			borderWidth: 3,
 			fill: false,
 			tension: 0.3,
@@ -325,7 +346,7 @@ function prepareChartData() {
 		datasets.push({
 			label: `Hum (${sensorId.replace('sensor','Sensor ')})`,
 			data: humData,
-			borderColor: mixWhite(sensorColors[idx], 0.5),
+			borderColor: mixWhite(sensorColors[colorIdx], 0.5),
 			borderDash: [8, 6],
 			backgroundColor: 'rgba(255,255,255,0.1)',
 			borderWidth: 3,
@@ -338,10 +359,10 @@ function prepareChartData() {
 	buildChart(datasets);
 }
 
-// --- Helper: Update Serial Monitor ---
+// --- Serial Monitor ---
 function updateSerialMonitor() {
 	let entries = [];
-	const selectedSensors = sensorCheckboxes.filter(cb => cb.checked).map(cb => cb.value);
+	const selectedSensors = sensorIds.filter((_, idx) => sensorCheckboxes[idx].checked);
 	const now = new Date();
 	const rangeMinutes = parseInt(timeRangeSelect.value);
 	const minTime = new Date(now.getTime() - rangeMinutes*60000);
