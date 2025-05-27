@@ -61,7 +61,6 @@
       align-items: center;
       padding: 1rem;
       width: 100%;
-      max-width: 95vw;
       box-sizing: border-box;
     }
     .top-bar {
@@ -71,13 +70,17 @@
       margin-bottom: 1.2rem;
       gap: 1.5rem;
       width: 100%;
+      max-width: 1600px;
     }
     .top-bar select, .top-bar button {
       padding: 0.5rem 1rem;
       font-size: 1rem;
+      margin-left: 0.5rem;
     }
     .left-panel {
       width: 100%;
+      max-width: 1600px;
+      margin: 0 auto;
       display: flex;
       flex-direction: column;
       gap: 2rem;
@@ -85,10 +88,12 @@
     .panel {
       background: white;
       padding: 1.5rem 2rem 2rem 2rem;
+      margin-bottom: 0;
       border: 1px solid #ccc;
       border-radius: 10px;
       width: 100%;
       box-sizing: border-box;
+      min-width: 300px;
     }
     .panel h2 {
       color: #003366;
@@ -102,6 +107,7 @@
       margin-right: 1rem;
       font-weight: 600;
       cursor: pointer;
+      user-select: none;
     }
     .checkbox-group input[type="checkbox"] {
       accent-color: #003366;
@@ -122,6 +128,9 @@
       position: relative;
       width: 100%;
       height: 500px;
+      min-height: 400px;
+      max-width: 100%;
+      margin-bottom: 1.2rem;
       background: #fff;
       border-radius: 8px;
     }
@@ -129,6 +138,8 @@
       width: 100% !important;
       height: 100% !important;
       display: block;
+      background: #fff;
+      border-radius: 8px;
     }
     .footer {
       background-color: #003366;
@@ -137,31 +148,37 @@
     }
     @media (max-width: 900px) {
       .main-container { padding: 0.5rem; }
-      .panel { padding: 1rem; }
-      .chart-container { height: 300px; }
+      .panel { padding: 1rem 0.5rem 1rem 0.5rem; }
+      .chart-container { height: 300px; min-height: 200px; }
     }
   </style>
 </head>
 <body>
 
-  <!-- Navigation Bar -->
-  <div class="navbar">
-    <div class="nav-links">
-      <a href="index.html">Home</a>
-      <a href="description.html">Description</a>
-      <a href="dashboard-temp-humidity.html">Live Dashboard - Temperature & Humidity</a>
-      <a href="dashboard-safety.html">Live Dashboard - Safety Monitoring</a>
-    </div>
+<!-- Navigation Bar -->
+<div class="navbar">
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="description.html">Description</a>
+    <a href="dashboard-temp-humidity.html">Live Dashboard - Temperature & Humidity</a>
+    <a href="dashboard-safety.html">Live Dashboard - Safety Monitoring</a>
   </div>
+</div>
 
-  <!-- Header -->
-  <div class="lab-header">ULTRACOLD MATTER LAB</div>
-  <div class="sub-header">Hemvati Nandan Bahuguna Garhwal University (A Central University), Srinagar, Uttarakhand, India (249161)</div>
+<!-- Header -->
+<div class="lab-header">
+  ULTRACOLD MATTER LAB
+</div>
+<div class="sub-header">
+  Hemvati Nandan Bahuguna Garhwal University (A Central University), Srinagar, Uttarakhand, India (249161)
+</div>
 
-  <!-- Main Content -->
-  <div class="main-container">
-    <!-- Top Controls -->
-    <div class="top-bar">
+<!-- Main Content -->
+<div class="main-container">
+
+  <!-- Top Controls -->
+  <div class="top-bar">
+    <div>
       <label for="time-range" style="font-weight:600;color:#003366;">Time Range:</label>
       <select id="time-range">
         <option value="15">Past 15 Minutes</option>
@@ -176,48 +193,56 @@
       </select>
       <button id="resetZoomBtn">Reset Zoom</button>
     </div>
-
-    <div class="left-panel">
-      <!-- Temperature Panel -->
-      <div class="panel">
-        <h2>Temperature Panel</h2>
-        <div class="checkbox-group" id="temp-checkboxes">
-          <label style="color:#FF6384;"><input type="checkbox" value="sensor1" checked> Sensor 1</label>
-          <label style="color:#36A2EB;"><input type="checkbox" value="sensor2" checked> Sensor 2</label>
-          <label style="color:#FFCE56;"><input type="checkbox" value="sensor3" checked> Sensor 3</label>
-          <label style="color:#4BC0C0;"><input type="checkbox" value="sensor4" checked> Sensor 4</label>
-          <label style="color:#9966FF;"><input type="checkbox" value="sensor5" checked> Sensor 5</label>
-          <label style="color:#FF9F40;"><input type="checkbox" value="sensor6" checked> Sensor 6</label>
-        </div>
-        <div class="chart-container">
-          <canvas id="tempChart" class="chart-canvas"></canvas>
-        </div>
-        <div class="serial-monitor" id="temp-serial">Serial Monitor: Temperature data streaming...</div>
-      </div>
-
-      <!-- Humidity Panel -->
-      <div class="panel">
-        <h2>Humidity Panel</h2>
-        <div class="checkbox-group" id="hum-checkboxes">
-          <label style="color:#FF6384;"><input type="checkbox" value="sensor1" checked> Sensor 1</label>
-          <label style="color:#36A2EB;"><input type="checkbox" value="sensor2" checked> Sensor 2</label>
-          <label style="color:#FFCE56;"><input type="checkbox" value="sensor3" checked> Sensor 3</label>
-          <label style="color:#4BC0C0;"><input type="checkbox" value="sensor4" checked> Sensor 4</label>
-          <label style="color:#9966FF;"><input type="checkbox" value="sensor5" checked> Sensor 5</label>
-          <label style="color:#FF9F40;"><input type="checkbox" value="sensor6" checked> Sensor 6</label>
-        </div>
-        <div class="chart-container">
-          <canvas id="humChart" class="chart-canvas"></canvas>
-        </div>
-        <div class="serial-monitor" id="hum-serial">Serial Monitor: Humidity data streaming...</div>
-      </div>
-    </div>
   </div>
 
-  <!-- Footer -->
-  <div class="footer"></div>
+  <div class="left-panel">
+
+    <!-- Temperature Panel -->
+    <div class="panel">
+      <h2>Temperature Panel</h2>
+      <div class="checkbox-group" id="temp-checkboxes">
+        <label style="color:#FF6384;"><input type="checkbox" value="sensor1" checked> Sensor 1</label>
+        <label style="color:#36A2EB;"><input type="checkbox" value="sensor2" checked> Sensor 2</label>
+        <label style="color:#FFCE56;"><input type="checkbox" value="sensor3" checked> Sensor 3</label>
+        <label style="color:#4BC0C0;"><input type="checkbox" value="sensor4" checked> Sensor 4</label>
+        <label style="color:#9966FF;"><input type="checkbox" value="sensor5" checked> Sensor 5</label>
+        <label style="color:#FF9F40;"><input type="checkbox" value="sensor6" checked> Sensor 6</label>
+      </div>
+      <div class="chart-container">
+        <canvas id="tempChart" class="chart-canvas"></canvas>
+      </div>
+      <div class="serial-monitor" id="temp-serial">
+        Serial Monitor: Temperature data streaming...
+      </div>
+    </div>
+
+    <!-- Humidity Panel -->
+    <div class="panel">
+      <h2>Humidity Panel</h2>
+      <div class="checkbox-group" id="hum-checkboxes">
+        <label style="color:#FF6384;"><input type="checkbox" value="sensor1" checked> Sensor 1</label>
+        <label style="color:#36A2EB;"><input type="checkbox" value="sensor2" checked> Sensor 2</label>
+        <label style="color:#FFCE56;"><input type="checkbox" value="sensor3" checked> Sensor 3</label>
+        <label style="color:#4BC0C0;"><input type="checkbox" value="sensor4" checked> Sensor 4</label>
+        <label style="color:#9966FF;"><input type="checkbox" value="sensor5" checked> Sensor 5</label>
+        <label style="color:#FF9F40;"><input type="checkbox" value="sensor6" checked> Sensor 6</label>
+      </div>
+      <div class="chart-container">
+        <canvas id="humChart" class="chart-canvas"></canvas>
+      </div>
+      <div class="serial-monitor" id="hum-serial">
+        Serial Monitor: Humidity data streaming...
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Footer -->
+<div class="footer"></div>
 
 <script>
+// --- Firebase Config ---
 const firebaseConfig = {
   apiKey: "AIzaSyATktR2jpo9ghUY0_MqpZh_KP5jrW-6YZE",
   authDomain: "ultracoldmatterlablive.firebaseapp.com",
@@ -230,8 +255,29 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// Chart builder with thinner lines and dotted humidity
+// --- Sensor IDs and Colors ---
+const sensorIds = ['sensor1', 'sensor2', 'sensor3', 'sensor4', 'sensor5', 'sensor6'];
+const sensorColors = [
+  'rgba(255,99,132,1)',
+  'rgba(54,162,235,1)',
+  'rgba(255,206,86,1)',
+  'rgba(75,192,192,1)',
+  'rgba(153,102,255,1)',
+  'rgba(255,159,64,1)'
+];
+
+// --- Chart.js Setup ---
+const tempCtx = document.getElementById('tempChart').getContext('2d');
+const humCtx = document.getElementById('humChart').getContext('2d');
+let tempChart, humChart;
 function buildChart(ctx, datasets, isTemp) {
+  const borderWidth = 2;
+  const borderDash = isTemp ? [] : [5, 5];
+  datasets.forEach(ds => {
+    ds.borderWidth = borderWidth;
+    ds.borderDash = borderDash;
+    ds.pointRadius = 0;
+  });
   return new Chart(ctx, {
     type: 'line',
     data: { datasets: datasets },
@@ -245,15 +291,40 @@ function buildChart(ctx, datasets, isTemp) {
           labels: { color: "#003366", font: { size: 15 } }
         },
         zoom: {
-          zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' },
-          pan: { enabled: true, mode: 'x' },
-          limits: { x: { minRange: 60000 } }
+          zoom: {
+            wheel: { enabled: true },
+            pinch: { enabled: true },
+            mode: 'x',
+          },
+          pan: {
+            enabled: true,
+            mode: 'x',
+          },
+          limits: {
+            x: { minRange: 60000 }
+          }
         },
-        tooltip: { enabled: true, mode: 'nearest' }
+        tooltip: {
+          enabled: true,
+          mode: 'nearest',
+        }
       },
       scales: {
-        x: { type: 'time', time: { tooltipFormat: 'PPpp' }, title: { display: true, text: 'Time' } },
-        y: { title: { display: true, text: isTemp ? 'Temperature (°C)' : 'Humidity (%)' } }
+        x: {
+          type: 'time',
+          time: {
+            tooltipFormat: 'PPpp',
+            unit: 'minute'
+          },
+          ticks: {
+            color: '#003366'
+          }
+        },
+        y: {
+          ticks: {
+            color: '#003366'
+          }
+        }
       }
     }
   });
