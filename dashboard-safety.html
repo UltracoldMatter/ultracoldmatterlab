@@ -1,175 +1,118 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Ultracold Matter Lab - Live Safety Dashboard</title>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-  body { font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }
-  h2 { margin-bottom: 10px; }
-  #serialMonitor {
-    max-width: 900px;
-    height: 200px;
-    overflow-y: auto;
-    background: black;
-    color: lime;
-    padding: 10px;
-    font-family: monospace;
-    border-radius: 5px;
-    margin-top: 20px;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Dashboard - Safety Systems</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
+    h2 { text-align: center; }
+    #chartContainer { width: 90%; margin: auto; }
+    #serialMonitor { width: 90%; margin: 20px auto; background: #fff; border: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: scroll; }
+    .log-entry { margin-bottom: 5px; }
+  </style>
 </head>
 <body>
+  <h2>Live Temperature and Humidity Dashboard</h2>
+  <div id="chartContainer">
+    <canvas id="sensorChart"></canvas>
+  </div>
+  <h3 style="text-align:center">Serial Monitor</h3>
+  <div id="serialMonitor"></div>
 
-<h2>Live Sensor Dashboard</h2>
-<canvas id="sensorChart" style="max-width:900px;"></canvas>
-
-<h3>Serial Monitor (Last 20 Entries)</h3>
-<div id="serialMonitor"></div>
-
-<script>
-  // Firebase config (your project)
-  const firebaseConfig = {
-    apiKey: "AIzaSyATktR2jpo9ghUY0_MqpZh_KP5jrW-6YZE",
-    authDomain: "ultracoldmatterlablive.firebaseapp.com",
-    databaseURL: "https://ultracoldmatterlablive-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "ultracoldmatterlablive",
-    storageBucket: "ultracoldmatterlablive.firebasestorage.app",
-    messagingSenderId: "75894080963",
-    appId: "1:75894080963:web:cfa41a9bd08d4f567f6976"
-  };
-
-  if (!firebase.apps.length) {
+  <script>
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyATktR2jpo9ghUY0_MqpZh_KP5jrW-6YZE",
+      authDomain: "ultracoldmatterlablive.firebaseapp.com",
+      databaseURL: "https://ultracoldmatterlablive-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "ultracoldmatterlablive",
+      storageBucket: "ultracoldmatterlablive.appspot.com",
+      messagingSenderId: "75894080963",
+      appId: "1:75894080963:web:cfa41a9bd08d4f567f6976"
+    };
     firebase.initializeApp(firebaseConfig);
-  }
-  const database = firebase.database();
+    const db = firebase.database();
 
-  const ctx = document.getElementById('sensorChart').getContext('2d');
-
-  const sensorColors = [
-    'rgb(255, 99, 132)', 'rgb(54, 162, 235)', 'rgb(255, 206, 86)',
-    'rgb(75, 192, 192)', 'rgb(153, 102, 255)', 'rgb(255, 159, 64)'
-  ];
-
-  const chartData = {
-    labels: [],
-    datasets: []
-  };
-
-  for(let i=0; i<6; i++) {
-    chartData.datasets.push({
-      label: `Sensor ${i+1} Temp (°C)`,
-      data: [],
-      borderColor: sensorColors[i],
-      fill: false,
-      tension: 0.1,
-      borderWidth: 2,
-      spanGaps: true,
-    });
-    chartData.datasets.push({
-      label: `Sensor ${i+1} Hum (%)`,
-      data: [],
-      borderColor: sensorColors[i],
-      fill: false,
-      borderDash: [5,5],
-      borderWidth: 2,
-      tension: 0.1,
-      spanGaps: true,
-    });
-  }
-
-  const sensorChart = new Chart(ctx, {
-    type: 'line',
-    data: chartData,
-    options: {
-      responsive: true,
-      interaction: {
-        mode: 'nearest',
-        intersect: false
+    // Chart setup
+    const ctx = document.getElementById('sensorChart').getContext('2d');
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: []
       },
-      scales: {
-        x: {
-          type: 'time',
-          time: { tooltipFormat: 'dd MMM yyyy HH:mm:ss', displayFormats: { second: 'HH:mm:ss' } },
-          title: { display: true, text: 'Time' }
-        },
-        y: {
-          beginAtZero: true,
-          title: { display: true, text: 'Value' }
+      options: {
+        responsive: true,
+        scales: {
+          x: { title: { display: true, text: 'Time' } },
+          y: { title: { display: true, text: 'Value' } }
         }
-      },
-      plugins: {
-        legend: { position: 'top' }
       }
-    }
-  });
-
-  const serialMonitor = document.getElementById('serialMonitor');
-  const maxSerialEntries = 20;
-  let serialEntries = [];
-
-  function addSerialEntry(text) {
-    serialEntries.unshift(text);
-    if (serialEntries.length > maxSerialEntries) serialEntries.pop();
-    serialMonitor.innerHTML = serialEntries.map(e => `<div>${e}</div>`).join('');
-  }
-
-  function formatTimestamp(iso) {
-    const d = new Date(iso);
-    if (isNaN(d)) return iso;
-    return d.toLocaleString('en-IN', {
-      day: '2-digit', month: 'short', year: 'numeric',
-      hour: '2-digit', minute: '2-digit', second: '2-digit',
-      hour12: true
     });
-  }
 
-  function setupFirebaseListeners() {
-    for(let sensorNum = 1; sensorNum <= 6; sensorNum++) {
-      const sensorPath = `/sensors/sensor${sensorNum}`;
-      const sensorRef = database.ref(sensorPath);
+    const serialMonitor = document.getElementById('serialMonitor');
+    const maxLogEntries = 20;
+    const sensorColors = ['red', 'blue', 'green', 'orange', 'purple', 'brown'];
 
-      sensorRef.limitToLast(1).on('child_added', snapshot => {
-        const timestamp = snapshot.key;
-        const data = snapshot.val();
-
-        if (!data) return;
-
-        const timeFormatted = formatTimestamp(timestamp);
-        const temp = data.temperature;
-        const hum = data.humidity;
-
-        const timeDate = new Date(timestamp);
-        if (isNaN(timeDate)) return;
-
-        const tempDatasetIndex = (sensorNum - 1) * 2;
-        const humDatasetIndex = tempDatasetIndex + 1;
-
-        chartData.datasets[tempDatasetIndex].data.push({ x: timeDate, y: temp });
-        chartData.datasets[humDatasetIndex].data.push({ x: timeDate, y: hum });
-
-        if (chartData.datasets[tempDatasetIndex].data.length > 50) {
-          chartData.datasets[tempDatasetIndex].data.shift();
-        }
-        if (chartData.datasets[humDatasetIndex].data.length > 50) {
-          chartData.datasets[humDatasetIndex].data.shift();
-        }
-
-        sensorChart.update('none');
-
-        addSerialEntry(
-          `Sensor ${sensorNum} | Temp: ${temp.toFixed(2)} °C, Hum: ${hum.toFixed(2)} % | ${timeFormatted}`
-        );
+    // Initialize datasets
+    for (let i = 1; i <= 6; i++) {
+      chart.data.datasets.push({
+        label: `Sensor ${i} Temp`,
+        borderColor: sensorColors[i - 1],
+        backgroundColor: sensorColors[i - 1],
+        data: [],
+        tension: 0.4
+      });
+      chart.data.datasets.push({
+        label: `Sensor ${i} Hum`,
+        borderColor: sensorColors[i - 1],
+        backgroundColor: sensorColors[i - 1],
+        data: [],
+        borderDash: [5, 5],
+        tension: 0.4
       });
     }
-  }
 
-  setupFirebaseListeners();
-</script>
+    function updateChartAndSerial(sensorIndex, temp, hum, timestamp) {
+      const timeLabel = timestamp.split(' ')[1];
+      if (!chart.data.labels.includes(timeLabel)) {
+        chart.data.labels.push(timeLabel);
+        if (chart.data.labels.length > 50) chart.data.labels.shift();
+      }
 
+      const tIndex = (sensorIndex - 1) * 2;
+      const hIndex = tIndex + 1;
+
+      chart.data.datasets[tIndex].data.push(temp);
+      chart.data.datasets[hIndex].data.push(hum);
+
+      if (chart.data.datasets[tIndex].data.length > 50) chart.data.datasets[tIndex].data.shift();
+      if (chart.data.datasets[hIndex].data.length > 50) chart.data.datasets[hIndex].data.shift();
+
+      chart.update();
+
+      const logLine = `<div class="log-entry">Sensor ${sensorIndex} | Temp: ${temp}°C, Hum: ${hum}%, Time: ${timestamp}</div>`;
+      serialMonitor.innerHTML = logLine + serialMonitor.innerHTML;
+      const entries = serialMonitor.querySelectorAll('.log-entry');
+      if (entries.length > maxLogEntries) entries[entries.length - 1].remove();
+    }
+
+    for (let i = 1; i <= 6; i++) {
+      const sensorRef = db.ref(`sensors/sensor${i}`);
+      sensorRef.on('value', snapshot => {
+        const data = snapshot.val();
+        if (data) {
+          const temp = parseFloat(data.temperature);
+          const hum = parseFloat(data.humidity);
+          const timestamp = new Date(data.timestamp).toLocaleString();
+          updateChartAndSerial(i, temp, hum, timestamp);
+        }
+      });
+    }
+  </script>
 </body>
 </html>
