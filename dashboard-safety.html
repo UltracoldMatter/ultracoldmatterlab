@@ -2,86 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Live Dashboard - Ultracold Lab</title>
+  <title>Firebase Live Chart</title>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      display: flex;
-      height: 100vh;
-    }
-    #left, #right {
-      padding: 20px;
-      overflow-y: auto;
-    }
-    #left {
-      flex: 3;
-      background-color: #fff;
-    }
-    #right {
-      flex: 1;
-      background-color: #f2f2f2;
-      border-left: 2px solid #ccc;
-    }
-    canvas {
-      max-width: 100%;
-    }
-    .status-online {
-      color: green;
-      font-weight: bold;
-    }
-    .status-offline {
-      color: red;
-    }
-    .checkboxes label {
-      display: block;
-      margin-bottom: 5px;
-    }
-    #serialMonitor {
-      font-family: monospace;
-      font-size: 0.85rem;
-      background-color: #222;
-      color: #0f0;
-      padding: 10px;
-      height: 150px;
-      overflow-y: scroll;
-      border: 1px solid #444;
-      margin-top: 10px;
-    }
-  </style>
 </head>
 <body>
-
-  <div id="left">
-    <h2>📈 Live Temperature & Humidity</h2>
-    <canvas id="sensorChart" height="100"></canvas>
-  </div>
-
-  <div id="right">
-    <h3>🔧 Sensor Controls</h3>
-    <div class="checkboxes" id="sensorCheckboxes"></div>
-
-    <label for="timeRange"><strong>⏱️ Time Range:</strong></label>
-    <select id="timeRange">
-      <option value="15">Last 15 minutes</option>
-      <option value="30">Last 30 minutes</option>
-      <option value="60" selected>Last 1 hour</option>
-      <option value="180">Last 3 hours</option>
-      <option value="360">Last 6 hours</option>
-      <option value="720">Last 12 hours</option>
-      <option value="1440">Last 24 hours</option>
-    </select>
-
-    <h3>🟢 Sensor Status</h3>
-    <ul id="statusList"></ul>
-
-    <h3>📜 Serial Monitor (Last 10 Entries)</h3>
-    <div id="serialMonitor"></div>
-  </div>
+  <h2>Sensor5 Live Temperature & Humidity</h2>
+  <canvas id="myChart" width="800" height="400"></canvas>
 
   <script>
     // Firebase config
@@ -94,17 +22,23 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const sensors = ['sensor1', 'sensor2', 'sensor3', 'sensor4', 'sensor5', 'sensor6'];
-    const colors = ['red', 'blue', 'green', 'orange', 'purple', 'teal'];
-    const chartData = {};
-    const serialBuffer = [];
-
-    // Set up Chart.js
-    const ctx = document.getElementById('sensorChart').getContext('2d');
+    const ctx = document.getElementById('myChart').getContext('2d');
     const chart = new Chart(ctx, {
       type: 'line',
       data: {
-        datasets: []
+        datasets: [
+          {
+            label: 'Temperature',
+            borderColor: 'red',
+            data: [],
+          },
+          {
+            label: 'Humidity',
+            borderColor: 'blue',
+            borderDash: [5, 5],
+            data: [],
+          }
+        ]
       },
       options: {
         animation: false,
@@ -112,110 +46,37 @@
         scales: {
           x: {
             type: 'time',
-            time: { unit: 'minute' },
-            title: { display: true, text: 'Time' }
+            time: {
+              tooltipFormat: 'HH:mm:ss',
+              unit: 'minute'
+            },
+            title: {
+              display: true,
+              text: 'Time'
+            }
           },
           y: {
-            title: { display: true, text: 'Value' }
+            title: {
+              display: true,
+              text: 'Value'
+            }
           }
         }
       }
     });
 
-    // UI Elements
-    const statusList = document.getElementById('statusList');
-    const checkboxesDiv = document.getElementById('sensorCheckboxes');
-    const serialMonitor = document.getElementById('serialMonitor');
-
-    // Initialize UI and datasets
-    sensors.forEach((sensor, i) => {
-      chartData[sensor] = [];
-
-      // Create checkboxes
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.id = sensor;
-      cb.checked = true;
-      cb.addEventListener('change', updateChart);
-
-      const label = document.createElement('label');
-      label.appendChild(cb);
-      label.appendChild(document.createTextNode(sensor));
-      checkboxesDiv.appendChild(label);
-
-      // Status items
-      const li = document.createElement('li');
-      li.id = `status-${sensor}`;
-      li.innerText = `${sensor}: N/A`;
-      statusList.appendChild(li);
-
-      // Chart lines
-      chart.data.datasets.push({
-        label: `${sensor} Temp`,
-        borderColor: colors[i],
-        backgroundColor: 'transparent',
-        data: [],
-        borderWidth: 2,
-        hidden: false
-      });
-      chart.data.datasets.push({
-        label: `${sensor} Hum`,
-        borderColor: colors[i],
-        backgroundColor: 'transparent',
-        borderDash: [5, 5],
-        data: [],
-        borderWidth: 2,
-        hidden: false
-      });
-
-      // Firebase listener
-      const ref = db.ref('sensors/' + sensor);
-      ref.on('child_added', snapshot => {
-        const timestamp = snapshot.key;
-        const val = snapshot.val();
-        if (!val || !val.temperature || !val.humidity) return;
-
-        const entry = {
-          timestamp: new Date(timestamp),
-          temperature: val.temperature,
-          humidity: val.humidity
-        };
-        chartData[sensor].push(entry);
-        updateChart();
-        updateStatus(sensor, entry.timestamp);
-        updateSerial(`${sensor} [${entry.timestamp.toLocaleTimeString()}] Temp: ${entry.temperature}, Hum: ${entry.humidity}`);
-      });
+    // Listen to /sensor5/ child_added
+    const ref = db.ref('sensors/sensor5');
+    ref.on('child_added', (snapshot) => {
+      const key = snapshot.key; // timestamp string
+      const val = snapshot.val();
+      const time = new Date(key);
+      if (!isNaN(time)) {
+        chart.data.datasets[0].data.push({ x: time, y: val.temperature });
+        chart.data.datasets[1].data.push({ x: time, y: val.humidity });
+        chart.update();
+      }
     });
-
-    function updateChart() {
-      const minutes = parseInt(document.getElementById('timeRange').value);
-      const minTime = new Date(Date.now() - minutes * 60000);
-
-      chart.data.datasets.forEach(ds => ds.data = []);
-
-      sensors.forEach((sensor, i) => {
-        const enabled = document.getElementById(sensor).checked;
-        if (!enabled) return;
-
-        const filtered = chartData[sensor].filter(e => e.timestamp >= minTime);
-        chart.data.datasets[i * 2].data = filtered.map(e => ({ x: e.timestamp, y: e.temperature }));
-        chart.data.datasets[i * 2 + 1].data = filtered.map(e => ({ x: e.timestamp, y: e.humidity }));
-      });
-      chart.update();
-    }
-
-    function updateStatus(sensor, timestamp) {
-      const li = document.getElementById(`status-${sensor}`);
-      li.innerHTML = `${sensor}: <span class="status-online">ONLINE</span><br><small>${timestamp.toLocaleString()}</small>`;
-    }
-
-    function updateSerial(entry) {
-      serialBuffer.unshift(entry);
-      if (serialBuffer.length > 10) serialBuffer.pop();
-      serialMonitor.innerText = serialBuffer.join('\n');
-    }
-
-    document.getElementById('timeRange').addEventListener('change', updateChart);
   </script>
 </body>
 </html>
