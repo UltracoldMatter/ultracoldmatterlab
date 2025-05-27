@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Live Dashboard - Temperature & Humidity</title>
-  <!-- Chart.js, date-fns adapter, zoom plugin -->
+  <!-- Chart.js and plugins -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.umd.min.js"></script>
@@ -21,7 +21,7 @@
       min-height: 100vh;
     }
     .navbar {
-      background-color: #ffffff;
+      background-color: #fff;
       color: #003366;
       padding: 1rem 2rem;
       display: flex;
@@ -275,7 +275,7 @@ const tempCtx = document.getElementById('tempChart').getContext('2d');
 const humCtx  = document.getElementById('humChart').getContext('2d');
 let tempChart, humChart;
 function buildChart(ctx, datasets, isTemp) {
-  const borderWidths = isTemp ? 8 : 4;
+  const borderWidths = isTemp ? 2 : 1.2;  // thinner lines
   const borderDash   = isTemp ? [] : [8,6];
   return new Chart(ctx, {
     type: 'line',
@@ -376,11 +376,11 @@ function prepareTempChartData() {
       data: data,
       borderColor: sensorColors[colorIdx],
       backgroundColor: sensorColors[colorIdx].replace('1)', '0.15)'),
-      borderWidth: 8,
+      borderWidth: 2,
       fill: false,
       tension: 0.3,
-      pointRadius: 6,
-      pointHoverRadius: 10,
+      pointRadius: 4,
+      pointHoverRadius: 6,
       order: 1,
       borderDash: []
     });
@@ -410,11 +410,11 @@ function prepareHumChartData() {
       data: data,
       borderColor: mixWhite(sensorColors[colorIdx], 0.5),
       backgroundColor: 'rgba(255,255,255,0.1)',
-      borderWidth: 4,
+      borderWidth: 1.2,
       fill: false,
       tension: 0.3,
-      pointRadius: 6,
-      pointHoverRadius: 10,
+      pointRadius: 4,
+      pointHoverRadius: 6,
       order: 1,
       borderDash: [8, 6]
     });
