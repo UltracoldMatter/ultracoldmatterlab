@@ -1,38 +1,22 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
-  <title>Sensor 1 Live Chart</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Chart.js -->
+  <title>Live Sensor 1 Data</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Firebase SDK (Compat mode) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background: #f9f9f9;
-    }
-    h2 {
-      text-align: center;
-    }
-    canvas {
-      max-width: 100%;
-      background: #fff;
-      border: 1px solid #ccc;
-      padding: 10px;
-      margin-top: 20px;
-    }
+    body { font-family: Arial; background: #f4f4f4; padding: 20px; }
+    h2 { text-align: center; }
+    canvas { background: white; border: 1px solid #ccc; padding: 10px; }
   </style>
 </head>
 <body>
-  <h2>Live Temperature and Humidity - Sensor 1</h2>
+  <h2>🔥 Sensor 1 Live Data (Temperature + Humidity)</h2>
   <canvas id="liveChart" height="100"></canvas>
 
   <script>
-    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyATktR2jpo9ghUY0_MqpZh_KP5jrW-6YZE",
       authDomain: "ultracoldmatterlablive.firebaseapp.com",
@@ -40,14 +24,12 @@
       projectId: "ultracoldmatterlablive",
       storageBucket: "ultracoldmatterlablive.appspot.com",
       messagingSenderId: "973389235899",
-      appId: "1:973389235899:web:xxxxxxxxxxxxx" // Optional
+      appId: "1:973389235899:web:xxxxxxxxxx"
     };
 
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Chart.js setup
     const ctx = document.getElementById('liveChart').getContext('2d');
     const labels = [];
     const tempData = [];
@@ -56,22 +38,22 @@
     const chart = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: labels,
+        labels,
         datasets: [
           {
             label: 'Temperature (°C)',
             data: tempData,
             borderColor: 'blue',
             backgroundColor: 'transparent',
-            tension: 0.3
+            tension: 0.3,
           },
           {
             label: 'Humidity (%)',
             data: humData,
             borderColor: 'rgba(0, 0, 255, 0.5)',
-            borderDash: [5, 5],
+            borderDash: [6, 4],
             backgroundColor: 'transparent',
-            tension: 0.3
+            tension: 0.3,
           }
         ]
       },
@@ -80,35 +62,27 @@
         animation: false,
         scales: {
           x: {
-            title: { display: true, text: 'Timestamp' }
+            title: { display: true, text: 'Time' }
           },
           y: {
             title: { display: true, text: 'Value' },
             suggestedMin: 0,
             suggestedMax: 100
           }
-        },
-        plugins: {
-          legend: {
-            labels: {
-              usePointStyle: true
-            }
-          }
         }
       }
     });
 
-    // Firebase listener for sensor1
-    const sensorRef = db.ref('sensors/sensor1');
-    sensorRef.limitToLast(1).on('child_added', snapshot => {
-      const timestamp = snapshot.key;
-      const values = snapshot.val();
+    const ref = db.ref("sensors/sensor1");
+    ref.limitToLast(1).on("child_added", snapshot => {
+      const ts = snapshot.key;
+      const data = snapshot.val();
 
-      labels.push(timestamp);
-      tempData.push(values.temperature);
-      humData.push(values.humidity);
+      labels.push(ts);
+      tempData.push(data.temperature);
+      humData.push(data.humidity);
 
-      if (labels.length > 20) {
+      if (labels.length > 30) {
         labels.shift();
         tempData.shift();
         humData.shift();
