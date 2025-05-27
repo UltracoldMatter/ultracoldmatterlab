@@ -97,7 +97,6 @@
     const chart = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: [], // time labels
         datasets: [
           // Each sensor: temp (solid), hum (dashed)
           ...Array.from({length: 6}, (_, i) => ({
