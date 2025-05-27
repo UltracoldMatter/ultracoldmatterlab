@@ -1,140 +1,91 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Live Temp + Humidity Sensor1</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    max-width: 700px;
-    margin: 20px auto;
-    text-align: center;
-  }
-  canvas {
-    max-width: 100%;
-  }
-</style>
+  <meta charset="UTF-8">
+  <title>Live Sensor Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 10px; }
+    canvas { max-width: 100%; }
+    #status { margin-top: 10px; }
+    .online { color: green; font-weight: bold; }
+    .offline { color: red; }
+  </style>
 </head>
 <body>
+  <h2>UltraCold Lab - Live Safety Monitoring</h2>
+  <canvas id="sensorChart" height="100"></canvas>
+  <div id="status"></div>
 
-<h2>Live Temperature + Humidity (Sensor 1)</h2>
-<canvas id="liveChart" height="150"></canvas>
+  <script>
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyATktR2jpo9ghUY0_MqpZh_KP5jrW-6YZE",
+      authDomain: "ultracoldmatterlablive.firebaseapp.com",
+      databaseURL: "https://ultracoldmatterlablive-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "ultracoldmatterlablive",
+    };
 
-<script>
-  // Your Firebase config - do NOT expose private keys or secrets here
-  const firebaseConfig = {
-    apiKey: "AIzaSyATktR2jpo9ghUY0_MqpZh_KP5jrW-6YZE",
-    authDomain: "ultracoldmatterlablive.firebaseapp.com",
-    databaseURL: "https://ultracoldmatterlablive-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "ultracoldmatterlablive",
-    storageBucket: "ultracoldmatterlablive.appspot.com",
-    messagingSenderId: "973389235899",
-    appId: "1:973389235899:web:xxxxxxxx" // Replace with your actual appId
-  };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-  // Initialize Firebase
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+    // Chart Setup
+    const ctx = document.getElementById("sensorChart").getContext("2d");
+    const sensorColors = ['red', 'blue', 'green', 'orange', 'purple', 'brown'];
 
-  // Chart.js setup
-  const ctx = document.getElementById('liveChart').getContext('2d');
-  const labels = [];
-  const tempData = [];
-  const humData = [];
-
-  const chart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: 'Temperature (°C)',
-          data: tempData,
-          borderColor: 'blue',
-          backgroundColor: 'transparent',
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        datasets: Array.from({ length: 6 }, (_, i) => ({
+          label: `Sensor ${i + 1} Temp`,
+          data: [],
+          borderColor: sensorColors[i],
+          backgroundColor: sensorColors[i],
+          borderWidth: 2,
           tension: 0.3,
-          fill: false,
-          yAxisID: 'y',
-          borderWidth: 2
-        },
-        {
-          label: 'Humidity (%)',
-          data: humData,
-          borderColor: 'rgba(0,0,255,0.5)',
-          borderDash: [5, 5],
-          backgroundColor: 'transparent',
-          tension: 0.3,
-          fill: false,
-          yAxisID: 'y1',
-          borderWidth: 2
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      animation: false,
-      interaction: {
-        mode: 'nearest',
-        intersect: false,
+        }))
       },
-      stacked: false,
-      scales: {
-        x: {
-          title: { display: true, text: 'Timestamp' },
-          ticks: {
-            maxRotation: 90,
-            minRotation: 45,
-            maxTicksLimit: 10
-          }
-        },
-        y: {
-          type: 'linear',
-          position: 'left',
-          title: { display: true, text: 'Temperature (°C)' },
-          suggestedMin: 0,
-          suggestedMax: 50
-        },
-        y1: {
-          type: 'linear',
-          position: 'right',
-          title: { display: true, text: 'Humidity (%)' },
-          suggestedMin: 0,
-          suggestedMax: 100,
-          grid: {
-            drawOnChartArea: false
+      options: {
+        responsive: true,
+        scales: {
+          x: {
+            type: 'time',
+            time: { unit: 'minute' },
+            title: { display: true, text: 'Time' }
+          },
+          y: {
+            title: { display: true, text: 'Temperature (°C)' }
           }
         }
       }
+    });
+
+    const statusDiv = document.getElementById("status");
+
+    // Load latest values from each sensor
+    function listenToSensor(i) {
+      const sensorPath = `sensors/sensor${i + 1}`;
+      db.ref(sensorPath).limitToLast(1).on("child_added", snapshot => {
+        const timestamp = snapshot.key;
+        const data = snapshot.val();
+        if (!data.temperature) return;
+
+        const time = new Date(timestamp);
+        chart.data.datasets[i].data.push({ x: time, y: data.temperature });
+        chart.update();
+
+        // Show status
+        document.getElementById(`sensor${i + 1}_status`)?.remove();
+        const statusLine = document.createElement("div");
+        statusLine.id = `sensor${i + 1}_status`;
+        statusLine.innerHTML = `Sensor ${i + 1}: <span class="online">ONLINE</span> @ ${timestamp} | Temp: ${data.temperature} °C | Hum: ${data.humidity} %`;
+        statusDiv.appendChild(statusLine);
+      });
     }
-  });
 
-  // Reference to sensor1 node
-  const sensorRef = db.ref("sensors/sensor1");
-
-  // Listen for new readings
-  sensorRef.limitToLast(30).on("child_added", snapshot => {
-    const ts = snapshot.key;   // e.g. "2025-05-27T13:06:11"
-    const val = snapshot.val();
-
-    // Push new data
-    labels.push(ts);
-    tempData.push(val.temperature);
-    humData.push(val.humidity);
-
-    // Keep max 30 points on chart
-    if (labels.length > 30) {
-      labels.shift();
-      tempData.shift();
-      humData.shift();
-    }
-
-    chart.update();
-  });
-</script>
-
+    for (let i = 0; i < 6; i++) listenToSensor(i);
+  </script>
 </body>
 </html>
