@@ -1,10 +1,38 @@
-<!-- Firebase and Chart.js SDKs -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ultracold Matter Lab - Live Safety Dashboard</title>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }
+  h2 { margin-bottom: 10px; }
+  #serialMonitor {
+    max-width: 900px;
+    height: 200px;
+    overflow-y: auto;
+    background: black;
+    color: lime;
+    padding: 10px;
+    font-family: monospace;
+    border-radius: 5px;
+    margin-top: 20px;
+  }
+</style>
+</head>
+<body>
+
+<h2>Live Sensor Dashboard</h2>
+<canvas id="sensorChart" style="max-width:900px;"></canvas>
+
+<h3>Serial Monitor (Last 20 Entries)</h3>
+<div id="serialMonitor"></div>
 
 <script>
-  // Your Firebase config
+  // Firebase config (your project)
   const firebaseConfig = {
     apiKey: "AIzaSyATktR2jpo9ghUY0_MqpZh_KP5jrW-6YZE",
     authDomain: "ultracoldmatterlablive.firebaseapp.com",
@@ -15,22 +43,16 @@
     appId: "1:75894080963:web:cfa41a9bd08d4f567f6976"
   };
 
-  // Initialize Firebase
   if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
   }
   const database = firebase.database();
 
-  // Chart.js setup
   const ctx = document.getElementById('sensorChart').getContext('2d');
 
   const sensorColors = [
-    'rgb(255, 99, 132)',    // Sensor 1 - Red
-    'rgb(54, 162, 235)',    // Sensor 2 - Blue
-    'rgb(255, 206, 86)',    // Sensor 3 - Yellow
-    'rgb(75, 192, 192)',    // Sensor 4 - Teal
-    'rgb(153, 102, 255)',   // Sensor 5 - Purple
-    'rgb(255, 159, 64)'     // Sensor 6 - Orange
+    'rgb(255, 99, 132)', 'rgb(54, 162, 235)', 'rgb(255, 206, 86)',
+    'rgb(75, 192, 192)', 'rgb(153, 102, 255)', 'rgb(255, 159, 64)'
   ];
 
   const chartData = {
@@ -72,10 +94,7 @@
       scales: {
         x: {
           type: 'time',
-          time: {
-            tooltipFormat: 'dd MMM yyyy HH:mm:ss',
-            displayFormats: { second: 'HH:mm:ss' }
-          },
+          time: { tooltipFormat: 'dd MMM yyyy HH:mm:ss', displayFormats: { second: 'HH:mm:ss' } },
           title: { display: true, text: 'Time' }
         },
         y: {
@@ -89,7 +108,6 @@
     }
   });
 
-  // Serial monitor
   const serialMonitor = document.getElementById('serialMonitor');
   const maxSerialEntries = 20;
   let serialEntries = [];
@@ -100,7 +118,6 @@
     serialMonitor.innerHTML = serialEntries.map(e => `<div>${e}</div>`).join('');
   }
 
-  // Format ISO timestamp nicely
   function formatTimestamp(iso) {
     const d = new Date(iso);
     if (isNaN(d)) return iso;
@@ -111,7 +128,6 @@
     });
   }
 
-  // Firebase listener for all 6 sensors
   function setupFirebaseListeners() {
     for(let sensorNum = 1; sensorNum <= 6; sensorNum++) {
       const sensorPath = `/sensors/sensor${sensorNum}`;
@@ -153,5 +169,7 @@
   }
 
   setupFirebaseListeners();
-
 </script>
+
+</body>
+</html>
