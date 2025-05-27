@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Live Dashboard - Safety Systems</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
@@ -37,7 +37,6 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Chart setup
     const ctx = document.getElementById('sensorChart').getContext('2d');
     const chart = new Chart(ctx, {
       type: 'line',
@@ -58,7 +57,6 @@
     const maxLogEntries = 20;
     const sensorColors = ['red', 'blue', 'green', 'orange', 'purple', 'brown'];
 
-    // Initialize datasets
     for (let i = 1; i <= 6; i++) {
       chart.data.datasets.push({
         label: `Sensor ${i} Temp`,
@@ -78,7 +76,10 @@
     }
 
     function updateChartAndSerial(sensorIndex, temp, hum, timestamp) {
-      const timeLabel = timestamp.split(', ')[1]; // Use HH:MM:SS from local time string
+      if (!timestamp || timestamp === "Invalid Date") return;
+
+      const timeLabel = timestamp.split(',')[1]?.trim() || timestamp;
+
       if (!chart.data.labels.includes(timeLabel)) {
         chart.data.labels.push(timeLabel);
         if (chart.data.labels.length > 50) chart.data.labels.shift();
@@ -97,6 +98,7 @@
 
       const logLine = `<div class="log-entry">Sensor ${sensorIndex} | Temp: ${temp}°C, Hum: ${hum}%, Time: ${timestamp}</div>`;
       serialMonitor.innerHTML = logLine + serialMonitor.innerHTML;
+
       const entries = serialMonitor.querySelectorAll('.log-entry');
       if (entries.length > maxLogEntries) entries[entries.length - 1].remove();
     }
@@ -105,13 +107,14 @@
       const sensorRef = db.ref(`sensors/sensor${i}`);
       sensorRef.on('value', snapshot => {
         const data = snapshot.val();
-        if (data) {
+        if (data && data.temperature && data.humidity && data.timestamp) {
           const temp = parseFloat(data.temperature);
           const hum = parseFloat(data.humidity);
 
-          // FIXED timestamp line:
           const rawTimestamp = data.timestamp;
-          const safeTimestamp = new Date(rawTimestamp.endsWith('Z') ? rawTimestamp : rawTimestamp + 'Z').toLocaleString();
+          const safeTimestamp = new Date(
+            rawTimestamp.endsWith('Z') ? rawTimestamp : rawTimestamp + 'Z'
+          ).toLocaleString();
 
           updateChartAndSerial(i, temp, hum, safeTimestamp);
         }
