@@ -360,7 +360,6 @@ function hexToRgba(hex, alpha) {
 
 // --- Real-time Listeners ---
 function setupRealtimeListeners() {
-    // Remove previous listeners
     for (let i = 1; i <= NUM_SENSORS; i++) {
         database.ref(`/sensors/sensor${i}`).off();
     }
@@ -376,12 +375,21 @@ function setupRealtimeListeners() {
             .on('value', (snapshot) => {
                 sensorData[`sensor${i}`] = [];
                 snapshot.forEach((childSnapshot) => {
+                    const key = childSnapshot.key;
                     const data = childSnapshot.val();
-                    sensorData[`sensor${i}`].push({
-                        timestamp: childSnapshot.key,
-                        temperature: parseFloat(data.temperature),
-                        humidity: parseFloat(data.humidity)
-                    });
+                    // Only process keys that look like timestamps and have both temperature & humidity
+                    if (
+                        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(key) &&
+                        typeof data === 'object' &&
+                        data.temperature !== undefined &&
+                        data.humidity !== undefined
+                    ) {
+                        sensorData[`sensor${i}`].push({
+                            timestamp: key,
+                            temperature: parseFloat(data.temperature),
+                            humidity: parseFloat(data.humidity)
+                        });
+                    }
                 });
                 updateChart();
                 updateSerialMonitor();
@@ -459,7 +467,8 @@ function updateSensorStatus() {
         let status = 'OFF', color = 'red';
         if (sensorData[sensorKey] && sensorData[sensorKey].length > 0) {
             const latest = sensorData[sensorKey][sensorData[sensorKey].length - 1];
-            const lastUpdateTime = Date.parse(latest.timestamp);
+            const ts = latest.timestamp.replace(' ', 'T');
+            const lastUpdateTime = Date.parse(ts);
             const now = Date.now();
             if (!isNaN(lastUpdateTime) && (now - lastUpdateTime < 30000)) {
                 status = 'ON';
