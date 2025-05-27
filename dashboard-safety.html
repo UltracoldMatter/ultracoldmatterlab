@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Live Temperature & Humidity Dashboard (6 Sensors)</title>
+  <title>Live Temperature & Humidity Dashboard (6 Sensors, One Chart)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -12,21 +12,24 @@
   <style>
     body { font-family: Arial, sans-serif; background: #181a1b; color: #fff; margin: 0; padding: 0; }
     h1 { text-align: center; }
-    .sensor-section { width: 95vw; max-width: 900px; margin: 30px auto 30px auto; background: #222; padding: 20px 10px 10px 10px; border-radius: 12px; }
-    .sensor-title { font-size: 1.3em; margin-bottom: 10px; }
-    .chart-container { margin-bottom: 10px; }
-    .serial-monitor { background: #222; padding: 15px; border-radius: 12px; min-height: 80px; font-size: 1.05em; }
+    #chart-container { width: 95vw; max-width: 1100px; margin: 30px auto 10px auto; background: #222; padding: 20px 10px 10px 10px; border-radius: 12px; }
+    #serial-monitor { width: 95vw; max-width: 1100px; margin: 0 auto 30px auto; background: #222; padding: 20px; border-radius: 12px; min-height: 120px; font-size: 1.1em; }
     .serial-entry { border-bottom: 1px solid #333; padding: 5px 0; }
     .serial-entry:last-child { border-bottom: none; }
     @media (max-width: 600px) {
-      .sensor-section { padding: 5px; }
-      .serial-monitor { padding: 5px; }
+      #chart-container, #serial-monitor { padding: 5px; }
     }
   </style>
 </head>
 <body>
   <h1>Live Temperature & Humidity Stream (6 Sensors)</h1>
-  <div id="sensors-root"></div>
+  <div id="chart-container">
+    <canvas id="liveChart"></canvas>
+  </div>
+  <div id="serial-monitor">
+    <strong>Serial Monitor (All Sensors):</strong>
+    <div id="serial-entries"></div>
+  </div>
   <script>
     // --- Firebase Config ---
     const firebaseConfig = {
@@ -41,117 +44,137 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // --- Sensor IDs ---
+    // --- Sensor IDs and Colors ---
     const sensorIds = ['sensor1', 'sensor2', 'sensor3', 'sensor4', 'sensor5', 'sensor6'];
+    const sensorColors = [
+      'rgba(255,99,132,1)',   // Red
+      'rgba(54,162,235,1)',   // Blue
+      'rgba(255,206,86,1)',   // Yellow
+      'rgba(75,192,192,1)',   // Green
+      'rgba(153,102,255,1)',  // Purple
+      'rgba(255,159,64,1)'    // Orange
+    ];
+    // --- Data Structures ---
+    // We'll collect all timestamps across all sensors, then sort and deduplicate
+    let allData = {}; // { sensorId: { timestamp: {temperature, humidity} } }
 
-    // --- Create UI for each sensor ---
-    const root = document.getElementById('sensors-root');
-    const chartObjs = {};
-    const serialMonitors = {};
-
-    sensorIds.forEach(sensorId => {
-      // Create section
-      const section = document.createElement('div');
-      section.className = "sensor-section";
-      section.innerHTML = `
-        <div class="sensor-title">Sensor: <b>${sensorId}</b></div>
-        <div class="chart-container"><canvas id="chart-${sensorId}"></canvas></div>
-        <div class="serial-monitor" id="serial-${sensorId}">
-          <strong>Serial Monitor:</strong>
-          <div id="serial-entries-${sensorId}"></div>
-        </div>
-      `;
-      root.appendChild(section);
-
-      // Chart.js setup
-      const ctx = section.querySelector(`#chart-${sensorId}`).getContext('2d');
-      const chartData = {
-        labels: [],
-        datasets: [
-          {
-            label: 'Temperature (°C)',
-            data: [],
-            borderColor: 'rgba(255,99,132,1)',
-            backgroundColor: 'rgba(255,99,132,0.1)',
-            borderWidth: 3,
-            fill: false,
-            tension: 0.3,
-            pointRadius: 2,
-          },
-          {
-            label: 'Humidity (%)',
-            data: [],
-            borderColor: 'rgba(255,255,255,0.5)',
-            borderDash: [8, 6],
-            backgroundColor: 'rgba(255,255,255,0.1)',
-            borderWidth: 3,
-            fill: false,
-            tension: 0.3,
-            pointRadius: 2,
+    // --- Chart.js Setup ---
+    const ctx = document.getElementById('liveChart').getContext('2d');
+    // We'll build datasets dynamically
+    let chart;
+    function buildChart(labels, datasets) {
+      if (chart) {
+        chart.data.labels = labels;
+        chart.data.datasets = datasets;
+        chart.update();
+      } else {
+        chart = new Chart(ctx, {
+          type: 'line',
+          data: { labels: labels, datasets: datasets },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { labels: { color: "#fff" } }
+            },
+            scales: {
+              x: { ticks: { color: "#ccc" } },
+              y: { ticks: { color: "#ccc" }, beginAtZero: false }
+            }
           }
-        ]
-      };
-      const chart = new Chart(ctx, {
-        type: 'line',
-        data: chartData,
-        options: {
-          responsive: true,
-          plugins: {
-            legend: { labels: { color: "#fff" } }
-          },
-          scales: {
-            x: { ticks: { color: "#ccc" } },
-            y: { ticks: { color: "#ccc" }, beginAtZero: false }
-          }
+        });
+      }
+    }
+
+    // --- Serial Monitor Setup ---
+    const serialMonitor = document.getElementById('serial-entries');
+    const MAX_SERIAL_ENTRIES = 40;
+    let serialBuffer = [];
+
+    // --- Helper: Format Datasets for Chart.js ---
+    function prepareChartData() {
+      // Collect all unique timestamps
+      const timestampSet = new Set();
+      sensorIds.forEach(sensorId => {
+        if (allData[sensorId]) {
+          Object.keys(allData[sensorId]).forEach(ts => timestampSet.add(ts));
         }
       });
-      chartObjs[sensorId] = chart;
-      serialMonitors[sensorId] = section.querySelector(`#serial-entries-${sensorId}`);
-    });
+      const allTimestamps = Array.from(timestampSet).sort();
 
-    // --- Fetch and Stream Data for each sensor ---
-    const MAX_SERIAL_ENTRIES = 20;
+      // Build datasets: one temp (solid), one humidity (dotted) per sensor
+      const datasets = [];
+      sensorIds.forEach((sensorId, idx) => {
+        // Temperature line (solid)
+        datasets.push({
+          label: `Temp (${sensorId})`,
+          data: allTimestamps.map(ts =>
+            allData[sensorId] && typeof allData[sensorId][ts]?.temperature === 'number'
+              ? allData[sensorId][ts].temperature
+              : null
+          ),
+          borderColor: sensorColors[idx],
+          backgroundColor: sensorColors[idx].replace('1)', '0.1)'),
+          borderWidth: 3,
+          fill: false,
+          tension: 0.3,
+          pointRadius: 2,
+        });
+        // Humidity line (dotted, white-mixed)
+        datasets.push({
+          label: `Hum (${sensorId})`,
+          data: allTimestamps.map(ts =>
+            allData[sensorId] && typeof allData[sensorId][ts]?.humidity === 'number'
+              ? allData[sensorId][ts].humidity
+              : null
+          ),
+          borderColor: 'rgba(255,255,255,0.5)',
+          borderDash: [8, 6],
+          backgroundColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 3,
+          fill: false,
+          tension: 0.3,
+          pointRadius: 2,
+        });
+      });
+      // Format labels as time only (HH:MM:SS)
+      const labels = allTimestamps.map(ts => ts.slice(11, 19));
+      buildChart(labels, datasets);
+    }
 
+    // --- Helper: Update Serial Monitor ---
+    function updateSerialMonitor() {
+      // Gather all readings from all sensors, flatten and sort by timestamp descending
+      let entries = [];
+      sensorIds.forEach(sensorId => {
+        if (allData[sensorId]) {
+          Object.entries(allData[sensorId]).forEach(([timestamp, values]) => {
+            const temp = values && typeof values.temperature === 'number' ? values.temperature : null;
+            const hum = values && typeof values.humidity === 'number' ? values.humidity : null;
+            entries.push({
+              sensorId,
+              timestamp,
+              temp,
+              hum
+            });
+          });
+        }
+      });
+      entries.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+      serialBuffer = entries.map(entry =>
+        `<div class="serial-entry">${entry.sensorId.replace(/sensor/, "Sensor ")} &rarr; Temp: <b>${entry.temp !== null ? entry.temp.toFixed(2) + ' °C' : 'N/A'}</b>, Hum: <b>${entry.hum !== null ? entry.hum.toFixed(2) + ' %' : 'N/A'}</b> at <span style="color:#aaa">${entry.timestamp}</span></div>`
+      );
+      serialMonitor.innerHTML = serialBuffer.slice(0, MAX_SERIAL_ENTRIES).join('');
+    }
+
+    // --- Listen to all sensors ---
     sensorIds.forEach(sensorId => {
+      allData[sensorId] = {};
       const sensorRef = db.ref('sensors/' + sensorId);
       sensorRef.limitToLast(30).on('value', snapshot => {
         const data = snapshot.val();
-        const chart = chartObjs[sensorId];
-        const serialMonitor = serialMonitors[sensorId];
-        if (!data) {
-          serialMonitor.innerHTML = '<div class="serial-entry">No data available.</div>';
-          chart.data.labels.length = 0;
-          chart.data.datasets[0].data.length = 0;
-          chart.data.datasets[1].data.length = 0;
-          chart.update();
-          return;
-        }
-        // Sort by timestamp key
-        const entries = Object.entries(data).sort(([a], [b]) => a.localeCompare(b));
-        // Reset chart data
-        chart.data.labels.length = 0;
-        chart.data.datasets[0].data.length = 0;
-        chart.data.datasets[1].data.length = 0;
-        let serialBuffer = [];
-        entries.forEach(([timestamp, values]) => {
-          // Defensive checks for missing or invalid data
-          const temp = values && typeof values.temperature === 'number' ? values.temperature : null;
-          const hum = values && typeof values.humidity === 'number' ? values.humidity : null;
-
-          // Add to chart (use null for missing data)
-          chart.data.labels.push(timestamp.slice(11,19)); // Show only HH:MM:SS
-          chart.data.datasets[0].data.push(temp);
-          chart.data.datasets[1].data.push(hum);
-
-          // Add to serial buffer
-          serialBuffer.push(
-            `<div class="serial-entry">${sensorId.replace(/sensor/, "Sensor ")} &rarr; Temp: <b>${temp !== null ? temp.toFixed(2) + ' °C' : 'N/A'}</b>, Hum: <b>${hum !== null ? hum.toFixed(2) + ' %' : 'N/A'}</b> at <span style="color:#aaa">${timestamp}</span></div>`
-          );
-        });
-        // Update chart
-        chart.update();
-        // Update serial monitor (show last MAX_SERIAL_ENTRIES)
-        serialMonitor.innerHTML = serialBuffer.slice(-MAX_SERIAL_ENTRIES).reverse().join('');
+        allData[sensorId] = data || {};
+        prepareChartData();
+        updateSerialMonitor();
       });
     });
   </script>
