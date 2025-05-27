@@ -198,15 +198,6 @@ const sensorColors = [
 	'rgba(153,102,255,1)',  // Sensor 5 - Purple
 	'rgba(255,159,64,1)'    // Sensor 6 - Orange
 ];
-// For label coloring (hex)
-const sensorLabelColors = [
-	'#FF6384', // Sensor 1
-	'#36A2EB', // Sensor 2
-	'#FFCE56', // Sensor 3
-	'#4BC0C0', // Sensor 4
-	'#9966FF', // Sensor 5
-	'#FF9F40'  // Sensor 6
-];
 
 // --- Data Structures ---
 let allData = {}; // { sensorId: { timestamp: {temperature, humidity} } }
@@ -245,7 +236,7 @@ function buildChart(datasets) {
 							mode: 'x',
 						},
 						limits: {
-							x: { minRange: 60000 } // minimum 1 minute
+							x: { minRange: 60000 }
 						}
 					},
 					tooltip: {
@@ -277,7 +268,7 @@ function buildChart(datasets) {
 				},
 				animation: false,
 				elements: {
-					line: { borderWidth: 3 }
+					line: { }
 				}
 			}
 		});
@@ -329,27 +320,27 @@ function prepareChartData() {
 				}
 			});
 		}
-		// Temperature line (solid)
+		// Temperature line (very thick solid)
 		datasets.push({
 			label: `Temp (${sensorId.replace('sensor','Sensor ')})`,
 			data: tempData,
 			borderColor: sensorColors[colorIdx],
 			backgroundColor: sensorColors[colorIdx].replace('1)', '0.1)'),
-			borderWidth: 3,
+			borderWidth: 8, // <--- THICK line!
 			fill: false,
 			tension: 0.3,
 			pointRadius: 2,
 			order: 1,
 			borderDash: []
 		});
-		// Humidity line (dotted, 50% white mixed with temp color)
+		// Humidity line (thick but thinner, dotted, 50% white mixed)
 		datasets.push({
 			label: `Hum (${sensorId.replace('sensor','Sensor ')})`,
 			data: humData,
 			borderColor: mixWhite(sensorColors[colorIdx], 0.5),
 			borderDash: [8, 6],
 			backgroundColor: 'rgba(255,255,255,0.1)',
-			borderWidth: 3,
+			borderWidth: 4, // <--- Thinner but still bold
 			fill: false,
 			tension: 0.3,
 			pointRadius: 2,
