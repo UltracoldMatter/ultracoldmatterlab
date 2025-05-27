@@ -2,315 +2,204 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>UltraCold Matter Lab Live Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Bootstrap CSS for styling -->
-  <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-    rel="stylesheet"
-  />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Live Sensor Dashboard</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial;
+      display: flex;
+      margin: 0;
+    }
+    #left, #right {
+      padding: 20px;
+    }
+    #left {
+      flex: 3;
+    }
+    #right {
+      flex: 1;
+      border-left: 1px solid #ccc;
+      background: #f9f9f9;
+    }
+    canvas {
+      max-width: 100%;
+    }
+    .status-online {
+      color: green;
+      font-weight: bold;
+    }
+    .status-offline {
+      color: red;
+    }
+    .checkboxes label {
+      display: block;
+      margin-bottom: 5px;
+    }
+  </style>
 </head>
-<body class="d-flex flex-column min-vh-100">
+<body>
+  <div id="left">
+    <h2>Live Sensor Data</h2>
+    <canvas id="sensorChart" height="100"></canvas>
+  </div>
+  <div id="right">
+    <h3>Sensor Controls</h3>
+    <div class="checkboxes" id="sensorCheckboxes"></div>
 
-  <!-- Navigation Bar -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="#">UltraCold Matter Lab Live</a>
-      <button
-        class="navbar-toggler"
-        type="button"
-        data-bs-toggle="collapse"
-        data-bs-target="#navbarNav"
-      >
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <!-- Add nav links here if needed -->
-        <ul class="navbar-nav ms-auto">
-          <li class="nav-item">
-            <a class="nav-link active" href="#">Dashboard</a>
-          </li>
-          <!-- more links if needed -->
-        </ul>
-      </div>
-    </div>
-  </nav>
+    <label for="timeRange"><strong>Time Range:</strong></label>
+    <select id="timeRange">
+      <option value="15">Last 15 minutes</option>
+      <option value="30">Last 30 minutes</option>
+      <option value="60" selected>Last 1 hour</option>
+      <option value="180">Last 3 hours</option>
+      <option value="360">Last 6 hours</option>
+      <option value="720">Last 12 hours</option>
+      <option value="1440">Last 24 hours</option>
+    </select>
 
-  <!-- Main Container -->
-  <div class="container-fluid flex-grow-1 mt-4">
-    <div class="row">
-      <!-- Left Panel: Chart and Serial Monitor -->
-      <div class="col-md-9">
-        <!-- Sensors Toggle Card -->
-        <div class="card mb-4">
-          <div class="card-header">
-            <strong>Sensor Display</strong>
-            <div class="mt-2">
-              <!-- Checkboxes for toggling sensors -->
-              <div class="form-check form-check-inline">
-                <input class="form-check-input" type="checkbox" id="sensor1Checkbox" checked>
-                <label class="form-check-label" for="sensor1Checkbox">Sensor 1</label>
-              </div>
-              <div class="form-check form-check-inline">
-                <input class="form-check-input" type="checkbox" id="sensor2Checkbox" checked>
-                <label class="form-check-label" for="sensor2Checkbox">Sensor 2</label>
-              </div>
-              <div class="form-check form-check-inline">
-                <input class="form-check-input" type="checkbox" id="sensor3Checkbox" checked>
-                <label class="form-check-label" for="sensor3Checkbox">Sensor 3</label>
-              </div>
-              <div class="form-check form-check-inline">
-                <input class="form-check-input" type="checkbox" id="sensor4Checkbox" checked>
-                <label class="form-check-label" for="sensor4Checkbox">Sensor 4</label>
-              </div>
-              <div class="form-check form-check-inline">
-                <input class="form-check-input" type="checkbox" id="sensor5Checkbox" checked>
-                <label class="form-check-label" for="sensor5Checkbox">Sensor 5</label>
-              </div>
-              <div class="form-check form-check-inline">
-                <input class="form-check-input" type="checkbox" id="sensor6Checkbox" checked>
-                <label class="form-check-label" for="sensor6Checkbox">Sensor 6</label>
-              </div>
-            </div>
-          </div>
-          <div class="card-body">
-            <!-- Chart.js Canvas -->
-            <canvas id="myChart" height="250"></canvas>
-          </div>
-        </div>
-
-        <!-- Serial Monitor Card -->
-        <div class="card mb-4">
-          <div class="card-body">
-            <label for="serialOutput" class="form-label"><strong>Serial Monitor:</strong></label>
-            <textarea id="serialOutput" class="form-control" rows="10" readonly></textarea>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right Panel: Controls & Status -->
-      <div class="col-md-3">
-        <div class="card mb-4">
-          <div class="card-body">
-            <!-- Time Range Dropdown -->
-            <div class="mb-3">
-              <label for="timeRange" class="form-label"><strong>Time Range:</strong></label>
-              <select id="timeRange" class="form-select">
-                <option value="10">10 min</option>
-                <option value="15">15 min</option>
-                <option value="30">30 min</option>
-                <option value="60">1 hr</option>
-                <option value="120">2 hr</option>
-                <option value="180">3 hr</option>
-                <option value="360">6 hr</option>
-                <option value="720">12 hr</option>
-                <option value="1440">1 day</option>
-                <option value="2880">2 days</option>
-                <option value="10080">1 week</option>
-                <option value="43200">1 month</option>
-              </select>
-            </div>
-            <!-- Live Setup Status -->
-            <div class="mb-3">
-              <strong>Setup Status:</strong>
-              <span id="systemStatus" class="badge bg-danger">OFFLINE</span>
-            </div>
-            <!-- Last Update Timestamp -->
-            <div class="mb-3">
-              <strong>Last Update:</strong>
-              <span id="lastUpdate">N/A</span>
-            </div>
-            <hr>
-            <!-- Individual Sensor Statuses -->
-            <div id="sensorStatus">
-              <div>Sensor 1: <span id="sensor1Status" class="badge bg-danger">OFF</span></div>
-              <div>Sensor 2: <span id="sensor2Status" class="badge bg-danger">OFF</span></div>
-              <div>Sensor 3: <span id="sensor3Status" class="badge bg-danger">OFF</span></div>
-              <div>Sensor 4: <span id="sensor4Status" class="badge bg-danger">OFF</span></div>
-              <div>Sensor 5: <span id="sensor5Status" class="badge bg-danger">OFF</span></div>
-              <div>Sensor 6: <span id="sensor6Status" class="badge bg-danger">OFF</span></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <h3>Status</h3>
+    <ul id="statusList"></ul>
   </div>
 
-  <!-- Footer -->
-  <footer class="bg-light text-center py-3 mt-auto">
-    <div class="container">
-      <span class="text-muted">© UltraCold Matter Lab 2025</span>
-    </div>
-  </footer>
-
-  <!-- Libraries -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/11.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/11.8.0/firebase-database-compat.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-  <!-- Firebase & Chart Initialization -->
   <script>
-    // Firebase configuration (client-side only, no sensitive keys)
+    // --- Firebase Config ---
     const firebaseConfig = {
       apiKey: "AIzaSyATktR2jpo9ghUY0_MqpZh_KP5jrW-6YZE",
       authDomain: "ultracoldmatterlablive.firebaseapp.com",
-      databaseURL: "https://ultracoldmatterlablive-default-rtdb.asia-southeast1.firebasedatabase.app",
+      databaseURL: "https://ultracoldmatterlablive-default-rtdb.asia-southeast1.firebasedatabase.app/",
       projectId: "ultracoldmatterlablive",
-      storageBucket: "ultracoldmatterlablive.firebasestorage.app",
-      messagingSenderId: "75894080963",
-      appId: "1:75894080963:web:cfa41a9bd08d4f567f6976"
+      storageBucket: "ultracoldmatterlablive.appspot.com",
+      messagingSenderId: "973389235899",
+      appId: "1:973389235899:web:abc123"
     };
-    // Initialize Firebase and Realtime Database
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Colors for sensors (base for temp, lighter for humidity)
-    const baseColors = ["#ff0000","#00ff00","#0000ff","#ffa500","#8000ff","#00ffff"];
-    const humColors  = ["#ff7f7f","#7fff7f","#7f7fff","#ffd27f","#bf7fff","#7fffff"];
-
-    // Prepare empty datasets for 6 sensors (temp & humidity)
-    const datasets = [];
-    for (let i = 1; i <= 6; i++) {
-      datasets.push({
-        label: `Sensor ${i} Temp`,
-        data: [],
-        borderColor: baseColors[i-1],
-        backgroundColor: baseColors[i-1],
-        tension: 0.2,
-        fill: false
-      });
-      datasets.push({
-        label: `Sensor ${i} Hum`,
-        data: [],
-        borderColor: humColors[i-1],
-        backgroundColor: humColors[i-1],
-        tension: 0.2,
-        fill: false
-      });
-    }
-
-    // Create the Chart.js line chart
-    const ctx = document.getElementById("myChart").getContext("2d");
-    const myChart = new Chart(ctx, {
-      type: "line",
-      data: { datasets: datasets },
+    // --- Chart Setup ---
+    const ctx = document.getElementById('sensorChart').getContext('2d');
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        datasets: []
+      },
       options: {
         animation: false,
         scales: {
           x: {
             type: 'time',
             time: { unit: 'minute' },
-            // min/max set dynamically
+            title: { display: true, text: 'Time' }
           },
           y: {
-            beginAtZero: true
+            title: { display: true, text: 'Value' }
           }
-        },
-        plugins: {
-          legend: { display: false } // Legend off; toggling via checkboxes
-        },
-        maintainAspectRatio: false
+        }
       }
     });
 
-    // State tracking for last update times
-    let lastUpdateTime = 0;
-    const sensorLastTime = {
-      sensor1: 0, sensor2: 0, sensor3: 0,
-      sensor4: 0, sensor5: 0, sensor6: 0
-    };
+    const sensors = ['sensor1', 'sensor2', 'sensor3', 'sensor4', 'sensor5', 'sensor6'];
+    const colors = ['red', 'blue', 'green', 'orange', 'purple', 'teal'];
+    const sensorData = {};
+    const statusList = document.getElementById('statusList');
+    const sensorCheckboxes = document.getElementById('sensorCheckboxes');
 
-    // Elements
-    const serialOutput = document.getElementById("serialOutput");
-    const systemStatusEl = document.getElementById("systemStatus");
-    const lastUpdateEl   = document.getElementById("lastUpdate");
+    // Populate checkboxes and status UI
+    sensors.forEach((sensor, index) => {
+      sensorData[sensor] = [];
 
-    // Update online/offline statuses
-    function updateStatuses() {
-      const now = Date.now();
-      // Overall system status based on last any-sensor update
-      if (lastUpdateTime && now - lastUpdateTime <= 5*60*1000) {
-        systemStatusEl.textContent = "ONLINE";
-        systemStatusEl.className = "badge bg-success";
-      } else {
-        systemStatusEl.textContent = "OFFLINE";
-        systemStatusEl.className = "badge bg-danger";
-      }
-      lastUpdateEl.textContent = lastUpdateTime
-        ? new Date(lastUpdateTime).toLocaleString()
-        : "N/A";
+      // Checkboxes
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.id = sensor;
+      checkbox.checked = true;
+      checkbox.onchange = updateChart;
 
-      // Individual sensor statuses
-      for (let i = 1; i <= 6; i++) {
-        const id = "sensor" + i;
-        const span = document.getElementById(id + "Status");
-        const last = sensorLastTime[id];
-        if (last && now - last <= 5*60*1000) {
-          span.textContent = "ON";
-          span.className = "badge bg-success";
-        } else {
-          span.textContent = "OFF";
-          span.className = "badge bg-danger";
-        }
-      }
-    }
-    // Periodically refresh statuses
-    setInterval(updateStatuses, 30000);
+      const label = document.createElement('label');
+      label.appendChild(checkbox);
+      label.appendChild(document.createTextNode(sensor));
+      sensorCheckboxes.appendChild(label);
 
-    // Time range filtering
-    const timeRange = document.getElementById("timeRange");
-    timeRange.addEventListener("change", applyTimeRange);
-    function applyTimeRange() {
-      const minutes = parseInt(timeRange.value);
-      const now = Date.now();
-      const minTime = now - minutes*60*1000;
-      myChart.options.scales.x.min = minTime;
-      myChart.options.scales.x.max = now;
-      myChart.update();
-    }
-    // Initialize to current selection
-    applyTimeRange();
+      // Status line
+      const statusItem = document.createElement('li');
+      statusItem.id = `status-${sensor}`;
+      statusItem.innerText = `${sensor}: N/A`;
+      statusList.appendChild(statusItem);
 
-    // Sensor toggle checkboxes
-    for (let i = 1; i <= 6; i++) {
-      const checkbox = document.getElementById(`sensor${i}Checkbox`);
-      checkbox.addEventListener("change", function () {
-        const show = this.checked;
-        myChart.getDatasetMeta((i-1)*2).hidden     = !show;
-        myChart.getDatasetMeta((i-1)*2 + 1).hidden = !show;
-        myChart.update();
+      // Chart datasets (temp and humidity)
+      chart.data.datasets.push({
+        label: `${sensor} Temp`,
+        data: [],
+        borderColor: colors[index],
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        hidden: false,
       });
+      chart.data.datasets.push({
+        label: `${sensor} Hum`,
+        data: [],
+        borderColor: colors[index],
+        backgroundColor: 'transparent',
+        borderDash: [5, 5],
+        borderWidth: 2,
+        hidden: false,
+      });
+    });
+
+    // Listener
+    sensors.forEach(sensor => {
+      const ref = db.ref('sensors/' + sensor);
+      ref.on('child_added', snapshot => {
+        const timestamp = snapshot.key;
+        const val = snapshot.val();
+        const time = new Date(timestamp);
+        if (!val || !val.temperature || !val.humidity) return;
+
+        handleNewData(sensor, {
+          timestamp: time,
+          temperature: val.temperature,
+          humidity: val.humidity
+        });
+      });
+    });
+
+    // Handle data from Firebase
+    function handleNewData(sensor, entry) {
+      sensorData[sensor].push(entry);
+
+      // Limit to past 24 hours
+      const now = new Date();
+      sensorData[sensor] = sensorData[sensor].filter(d =>
+        now - d.timestamp <= 1000 * 60 * 1440
+      );
+
+      // Update status
+      const statusItem = document.getElementById(`status-${sensor}`);
+      statusItem.innerHTML = `${sensor}: <span class="status-online">ONLINE</span><br><small>${entry.timestamp.toLocaleString()}</small>`;
+
+      updateChart();
     }
 
-    // Listen for new data from each sensor node
-    for (let i = 1; i <= 6; i++) {
-      const sensorKey = `sensor${i}`;
-      db.ref(sensorKey).on("child_added", snapshot => {
-        const reading = snapshot.val();
-        // Determine timestamp (in ms)
-        let ts = reading.timestamp ? parseInt(reading.timestamp) : parseInt(snapshot.key);
-        if (ts < 1e12) ts = ts * 1000;  // convert seconds to ms if needed
-        const time = new Date(ts);
-        // Extract values (assume fields "temperature" and "humidity")
-        const temp = parseFloat(reading.temperature);
-        const hum  = parseFloat(reading.humidity);
-        // Add data points to chart
-        myChart.data.datasets[(i-1)*2].data.push({x: time, y: temp});
-        myChart.data.datasets[(i-1)*2 + 1].data.push({x: time, y: hum});
-        myChart.update();
-        // Append to serial monitor
-        const tstr = time.toLocaleTimeString();
-        serialOutput.value += `${tstr} - Sensor ${i}: Temp ${temp}°C, Hum ${hum}%\n`;
-        serialOutput.scrollTop = serialOutput.scrollHeight;
-        // Update last update times
-        lastUpdateTime = Math.max(lastUpdateTime, ts);
-        sensorLastTime[sensorKey] = Math.max(sensorLastTime[sensorKey], ts);
-        updateStatuses();
-        applyTimeRange(); // keep chart range sliding
+    // Time filtering and rendering
+    function updateChart() {
+      const selectedMinutes = parseInt(document.getElementById('timeRange').value);
+      const minTime = new Date(Date.now() - selectedMinutes * 60 * 1000);
+
+      chart.data.datasets.forEach(ds => ds.data = []);
+      sensors.forEach((sensor, index) => {
+        const checkbox = document.getElementById(sensor);
+        if (!checkbox.checked) return;
+
+        const data = sensorData[sensor].filter(e => e.timestamp >= minTime);
+        chart.data.datasets[index * 2].data = data.map(e => ({ x: e.timestamp, y: e.temperature }));
+        chart.data.datasets[index * 2 + 1].data = data.map(e => ({ x: e.timestamp, y: e.humidity }));
       });
+      chart.update();
     }
+
+    document.getElementById('timeRange').addEventListener('change', updateChart);
   </script>
 </body>
 </html>
