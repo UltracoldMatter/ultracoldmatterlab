@@ -2,86 +2,132 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Live Sensor Dashboard</title>
+  <title>UltraCold Lab - Safety Monitoring</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; padding: 10px; }
-    canvas { max-width: 100%; }
-    #status { margin-top: 10px; }
-    .online { color: green; font-weight: bold; }
-    .offline { color: red; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 15px;
+    }
+    canvas {
+      max-width: 100%;
+      margin-bottom: 20px;
+    }
+    .status {
+      margin-top: 10px;
+    }
+    .online {
+      color: green;
+      font-weight: bold;
+    }
+    .offline {
+      color: red;
+    }
   </style>
 </head>
 <body>
-  <h2>UltraCold Lab - Live Safety Monitoring</h2>
-  <canvas id="sensorChart" height="100"></canvas>
-  <div id="status"></div>
+  <h2>UltraCold Lab - Safety Live Dashboard</h2>
+  <canvas id="liveChart" height="120"></canvas>
+  <div id="sensorStatus" class="status"></div>
 
   <script>
-    // Firebase Config
+    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyATktR2jpo9ghUY0_MqpZh_KP5jrW-6YZE",
       authDomain: "ultracoldmatterlablive.firebaseapp.com",
       databaseURL: "https://ultracoldmatterlablive-default-rtdb.asia-southeast1.firebasedatabase.app",
       projectId: "ultracoldmatterlablive",
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Chart Setup
-    const ctx = document.getElementById("sensorChart").getContext("2d");
-    const sensorColors = ['red', 'blue', 'green', 'orange', 'purple', 'brown'];
+    // Colors for each sensor
+    const colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown'];
 
-    const chart = new Chart(ctx, {
+    // Chart datasets
+    const datasets = [];
+    for (let i = 0; i < 6; i++) {
+      datasets.push({
+        label: `Sensor ${i + 1} Temp`,
+        data: [],
+        borderColor: colors[i],
+        backgroundColor: colors[i],
+        tension: 0.3,
+        borderWidth: 2,
+        yAxisID: 'y',
+      });
+      datasets.push({
+        label: `Sensor ${i + 1} Hum`,
+        data: [],
+        borderColor: colors[i],
+        borderDash: [5, 5],
+        tension: 0.3,
+        borderWidth: 2,
+        yAxisID: 'y1',
+      });
+    }
+
+    // Create Chart
+    const ctx = document.getElementById('liveChart').getContext('2d');
+    const liveChart = new Chart(ctx, {
       type: 'line',
       data: {
-        datasets: Array.from({ length: 6 }, (_, i) => ({
-          label: `Sensor ${i + 1} Temp`,
-          data: [],
-          borderColor: sensorColors[i],
-          backgroundColor: sensorColors[i],
-          borderWidth: 2,
-          tension: 0.3,
-        }))
+        datasets: datasets
       },
       options: {
         responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        stacked: false,
         scales: {
           x: {
             type: 'time',
-            time: { unit: 'minute' },
+            time: { tooltipFormat: 'HH:mm:ss', unit: 'minute' },
             title: { display: true, text: 'Time' }
           },
           y: {
-            title: { display: true, text: 'Temperature (°C)' }
+            title: { display: true, text: 'Temperature (°C)' },
+            position: 'left',
+          },
+          y1: {
+            title: { display: true, text: 'Humidity (%)' },
+            position: 'right',
+            grid: { drawOnChartArea: false },
           }
         }
       }
     });
 
-    const statusDiv = document.getElementById("status");
+    // Live update
+    const statusDiv = document.getElementById("sensorStatus");
 
-    // Load latest values from each sensor
-    function listenToSensor(i) {
-      const sensorPath = `sensors/sensor${i + 1}`;
-      db.ref(sensorPath).limitToLast(1).on("child_added", snapshot => {
-        const timestamp = snapshot.key;
-        const data = snapshot.val();
-        if (!data.temperature) return;
+    function listenToSensor(sensorIndex) {
+      const path = `sensors/sensor${sensorIndex + 1}`;
+      db.ref(path).limitToLast(1).on("child_added", snap => {
+        const timestamp = snap.key;
+        const data = snap.val();
+        if (!data || !data.temperature || !data.humidity) return;
 
         const time = new Date(timestamp);
-        chart.data.datasets[i].data.push({ x: time, y: data.temperature });
-        chart.update();
+        const temp = parseFloat(data.temperature);
+        const hum = parseFloat(data.humidity);
 
-        // Show status
-        document.getElementById(`sensor${i + 1}_status`)?.remove();
-        const statusLine = document.createElement("div");
-        statusLine.id = `sensor${i + 1}_status`;
-        statusLine.innerHTML = `Sensor ${i + 1}: <span class="online">ONLINE</span> @ ${timestamp} | Temp: ${data.temperature} °C | Hum: ${data.humidity} %`;
-        statusDiv.appendChild(statusLine);
+        liveChart.data.datasets[sensorIndex * 2].data.push({ x: time, y: temp });
+        liveChart.data.datasets[sensorIndex * 2 + 1].data.push({ x: time, y: hum });
+        liveChart.update();
+
+        // Update sensor status
+        const id = `sensor${sensorIndex + 1}_status`;
+        const text = `Sensor ${sensorIndex + 1}: <span class="online">ONLINE</span> @ ${timestamp} | Temp: ${temp} °C | Hum: ${hum} %`;
+        let el = document.getElementById(id);
+        if (!el) {
+          el = document.createElement("div");
+          el.id = id;
+          statusDiv.appendChild(el);
+        }
+        el.innerHTML = text;
       });
     }
 
