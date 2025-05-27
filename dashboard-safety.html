@@ -1,137 +1,225 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>UltraCold Lab - Safety Monitoring</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Live Dashboard – Safety Systems</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
-      padding: 15px;
+      margin: 10px;
+      background-color: #f8f9fa;
+    }
+    .container {
+      display: flex;
+      gap: 20px;
+    }
+    .left-panel {
+      flex: 3;
+    }
+    .right-panel {
+      flex: 1;
     }
     canvas {
-      max-width: 100%;
-      margin-bottom: 20px;
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 10px;
     }
-    .status {
-      margin-top: 10px;
+    .sensor-status {
+      margin: 10px 0;
+      padding: 10px;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 8px;
     }
     .online {
       color: green;
-      font-weight: bold;
     }
     .offline {
       color: red;
     }
+    .na {
+      color: gray;
+    }
+    .log {
+      font-size: 0.9em;
+      white-space: pre-line;
+      background: #f1f1f1;
+      border: 1px solid #ddd;
+      padding: 10px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    label {
+      display: inline-block;
+      margin: 5px 10px 5px 0;
+    }
   </style>
 </head>
 <body>
-  <h2>UltraCold Lab - Safety Live Dashboard</h2>
-  <canvas id="liveChart" height="120"></canvas>
-  <div id="sensorStatus" class="status"></div>
+  <h2>Live Dashboard – Safety Systems</h2>
+
+  <label>Show sensors:</label>
+  <span id="sensor-toggles"></span>
+
+  <label style="margin-left: 20px;">Time range:</label>
+  <select id="time-range">
+    <option value="10">Last 10 min</option>
+    <option value="30">Last 30 min</option>
+    <option value="60">Last 1 hour</option>
+  </select>
+
+  <div class="container">
+    <div class="left-panel">
+      <canvas id="sensorChart" height="300"></canvas>
+      <h4>Serial Monitor</h4>
+      <div class="log" id="serialLog"></div>
+    </div>
+    <div class="right-panel">
+      <h4>Sensor Status</h4>
+      <div id="statusList"></div>
+    </div>
+  </div>
 
   <script>
-    // Firebase config
+    // Initialize Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyATktR2jpo9ghUY0_MqpZh_KP5jrW-6YZE",
-      authDomain: "ultracoldmatterlablive.firebaseapp.com",
-      databaseURL: "https://ultracoldmatterlablive-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "ultracoldmatterlablive",
+      authDomain: "ultracoldmatterlab.firebaseapp.com",
+      databaseURL: "https://ultracoldmatterlablive-default-rtdb.asia-southeast1.firebasedatabase.app/",
+      projectId: "ultracoldmatterlab",
+      storageBucket: "ultracoldmatterlab.appspot.com",
+      messagingSenderId: "973389235899",
+      appId: "1:973389235899:web:abcdef123456"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Colors for each sensor
-    const colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown'];
+    const sensors = [1, 2, 3, 4, 5, 6];
+    const colors = ['red', 'blue', 'green', 'orange', 'purple', 'teal'];
+    const chartData = {
+      labels: [],
+      datasets: sensors.flatMap(i => [
+        {
+          label: `Sensor ${i} Temp`,
+          data: [],
+          borderColor: colors[i - 1],
+          hidden: false,
+          tension: 0.4,
+        },
+        {
+          label: `Sensor ${i} Hum`,
+          data: [],
+          borderColor: colors[i - 1],
+          borderDash: [5, 5],
+          backgroundColor: 'transparent',
+          hidden: false,
+          tension: 0.4,
+        }
+      ])
+    };
 
-    // Chart datasets
-    const datasets = [];
-    for (let i = 0; i < 6; i++) {
-      datasets.push({
-        label: `Sensor ${i + 1} Temp`,
-        data: [],
-        borderColor: colors[i],
-        backgroundColor: colors[i],
-        tension: 0.3,
-        borderWidth: 2,
-        yAxisID: 'y',
-      });
-      datasets.push({
-        label: `Sensor ${i + 1} Hum`,
-        data: [],
-        borderColor: colors[i],
-        borderDash: [5, 5],
-        tension: 0.3,
-        borderWidth: 2,
-        yAxisID: 'y1',
-      });
-    }
-
-    // Create Chart
-    const ctx = document.getElementById('liveChart').getContext('2d');
-    const liveChart = new Chart(ctx, {
+    const chartConfig = {
       type: 'line',
-      data: {
-        datasets: datasets
-      },
+      data: chartData,
       options: {
         responsive: true,
-        interaction: { mode: 'index', intersect: false },
-        stacked: false,
         scales: {
-          x: {
-            type: 'time',
-            time: { tooltipFormat: 'HH:mm:ss', unit: 'minute' },
-            title: { display: true, text: 'Time' }
-          },
-          y: {
-            title: { display: true, text: 'Temperature (°C)' },
-            position: 'left',
-          },
-          y1: {
-            title: { display: true, text: 'Humidity (%)' },
-            position: 'right',
-            grid: { drawOnChartArea: false },
-          }
+          x: { type: 'time', time: { unit: 'minute' } },
+          y: { title: { display: true, text: 'Value' } }
         }
       }
-    });
+    };
 
-    // Live update
-    const statusDiv = document.getElementById("sensorStatus");
+    const ctx = document.getElementById('sensorChart').getContext('2d');
+    const myChart = new Chart(ctx, chartConfig);
+    const serialLog = document.getElementById("serialLog");
+    const statusList = document.getElementById("statusList");
 
-    function listenToSensor(sensorIndex) {
-      const path = `sensors/sensor${sensorIndex + 1}`;
-      db.ref(path).limitToLast(1).on("child_added", snap => {
-        const timestamp = snap.key;
-        const data = snap.val();
-        if (!data || !data.temperature || !data.humidity) return;
+    function updateChart() {
+      myChart.update();
+    }
 
-        const time = new Date(timestamp);
-        const temp = parseFloat(data.temperature);
-        const hum = parseFloat(data.humidity);
-
-        liveChart.data.datasets[sensorIndex * 2].data.push({ x: time, y: temp });
-        liveChart.data.datasets[sensorIndex * 2 + 1].data.push({ x: time, y: hum });
-        liveChart.update();
-
-        // Update sensor status
-        const id = `sensor${sensorIndex + 1}_status`;
-        const text = `Sensor ${sensorIndex + 1}: <span class="online">ONLINE</span> @ ${timestamp} | Temp: ${temp} °C | Hum: ${hum} %`;
-        let el = document.getElementById(id);
-        if (!el) {
-          el = document.createElement("div");
-          el.id = id;
-          statusDiv.appendChild(el);
-        }
-        el.innerHTML = text;
+    function addSensorToggles() {
+      const toggleDiv = document.getElementById("sensor-toggles");
+      sensors.forEach((i) => {
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.id = `sensor${i}`;
+        checkbox.checked = true;
+        checkbox.addEventListener("change", () => {
+          myChart.data.datasets[2 * (i - 1)].hidden = !checkbox.checked;
+          myChart.data.datasets[2 * (i - 1) + 1].hidden = !checkbox.checked;
+          updateChart();
+        });
+        const label = document.createElement("label");
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(`S${i}`));
+        toggleDiv.appendChild(label);
       });
     }
 
-    for (let i = 0; i < 6; i++) listenToSensor(i);
+    function updateStatus(sensorId, lastTime) {
+      const statusEl = document.getElementById(`status${sensorId}`) || document.createElement("div");
+      const elapsedMin = (Date.now() - new Date(lastTime)) / 60000;
+      let status = 'N/A';
+      let className = 'na';
+      if (!isNaN(elapsedMin)) {
+        if (elapsedMin <= 2) {
+          status = 'ONLINE';
+          className = 'online';
+        } else {
+          status = 'OFFLINE';
+          className = 'offline';
+        }
+      }
+      statusEl.id = `status${sensorId}`;
+      statusEl.className = `sensor-status ${className}`;
+      statusEl.innerHTML = `<strong>Sensor ${sensorId}:</strong> ${status}<br><small>Last updated: ${new Date(lastTime).toLocaleTimeString()}</small>`;
+      if (!statusEl.parentElement) statusList.appendChild(statusEl);
+    }
+
+    function loadLiveData(minutes = 10) {
+      chartData.labels = [];
+      chartData.datasets.forEach(ds => ds.data = []);
+      serialLog.innerText = "";
+
+      sensors.forEach(sensorId => {
+        db.ref(`sensors/sensor${sensorId}`).orderByKey().limitToLast(200).once('value', snap => {
+          const logs = [];
+          snap.forEach(child => {
+            const timeStr = child.key;
+            const t = new Date(timeStr);
+            if ((Date.now() - t.getTime()) > minutes * 60 * 1000) return;
+            const data = child.val();
+            logs.push(`Sensor ${sensorId} - T: ${data.temperature} °C, H: ${data.humidity} % @ ${t.toLocaleTimeString()}`);
+
+            chartData.labels.push(t);
+            chartData.datasets[2 * (sensorId - 1)].data.push({ x: t, y: data.temperature });
+            chartData.datasets[2 * (sensorId - 1) + 1].data.push({ x: t, y: data.humidity });
+
+            updateStatus(sensorId, timeStr);
+          });
+          logs.reverse().slice(0, 10).forEach(log => {
+            serialLog.innerText += log + '\n';
+          });
+          updateChart();
+        });
+      });
+    }
+
+    addSensorToggles();
+    loadLiveData();
+
+    document.getElementById("time-range").addEventListener("change", e => {
+      const minutes = parseInt(e.target.value);
+      loadLiveData(minutes);
+    });
+
+    setInterval(() => loadLiveData(parseInt(document.getElementById("time-range").value)), 30000);
   </script>
 </body>
 </html>
