@@ -13,7 +13,6 @@
             flex-direction: column;
             min-height: 100vh;
         }
-        
         .navbar {
             background-color: #ffffff;
             color: #003366;
@@ -23,18 +22,15 @@
             align-items: center;
             border-bottom: 2px solid #ccc;
         }
-        
         .nav-links a {
             color: #003366;
             text-decoration: none;
             margin-left: 1.5rem;
             font-weight: 600;
         }
-        
         .nav-links a:hover {
             text-decoration: underline;
         }
-        
         .lab-header {
             background-color: #004080;
             color: white;
@@ -45,32 +41,27 @@
             border-top: 4px solid #002244;
             border-bottom: 4px solid #002244;
         }
-        
         .sub-header {
             text-align: center;
             font-size: 0.9rem;
             color: #444;
             padding: 0.5rem 1rem;
         }
-        
         .main-container {
             flex: 1;
             display: flex;
             flex-direction: row;
             padding: 1rem;
         }
-        
         .left-panel {
             flex: 3;
             padding-right: 1rem;
         }
-        
         .right-panel {
             flex: 1;
             border-left: 2px solid #ccc;
             padding-left: 1rem;
         }
-        
         .panel {
             background: white;
             padding: 1rem;
@@ -78,35 +69,29 @@
             border: 1px solid #ccc;
             border-radius: 8px;
         }
-        
         .panel h2 {
             color: #003366;
             margin-top: 0;
         }
-        
         .checkbox-group {
             margin: 1rem 0;
             display: flex;
             flex-wrap: wrap;
             gap: 1rem;
         }
-        
         .checkbox-group label {
             display: flex;
             align-items: center;
             cursor: pointer;
         }
-        
         .checkbox-group input[type="checkbox"] {
             margin-right: 0.5rem;
         }
-        
         .chart-container {
             position: relative;
             height: 400px;
             margin: 1rem 0;
         }
-        
         .serial-monitor {
             background: #000;
             color: #0f0;
@@ -119,17 +104,14 @@
             font-size: 0.9rem;
             line-height: 1.2;
         }
-        
         .time-selector {
             margin-bottom: 2rem;
         }
-        
         .time-selector h3,
         .status h3 {
             color: #003366;
             margin-top: 0;
         }
-        
         select {
             padding: 0.5rem;
             width: 100%;
@@ -137,24 +119,19 @@
             border: 1px solid #ccc;
             border-radius: 4px;
         }
-        
         .status {
             margin-top: 1rem;
         }
-        
         .status p {
             margin: 0.5rem 0;
         }
-        
         .status span {
             font-weight: bold;
         }
-        
         .sensor-status {
             margin: 0.3rem 0;
             font-size: 0.9rem;
         }
-        
         .footer {
             background-color: #003366;
             height: 60px;
@@ -271,6 +248,7 @@ const SENSOR_COLORS = [
 let chart;
 let sensorData = {};
 let sensorVisible = Array(NUM_SENSORS).fill(true);
+let listenersActive = false;
 
 // --- HTML Elements ---
 const ctx = document.getElementById('combinedChart').getContext('2d');
@@ -283,6 +261,7 @@ const sensorCheckboxesDiv = document.getElementById('sensor-checkboxes');
 
 // --- Initialize Checkboxes ---
 function createCheckboxes() {
+    sensorCheckboxesDiv.innerHTML = '';
     for (let i = 0; i < NUM_SENSORS; i++) {
         const label = document.createElement('label');
         const checkbox = document.createElement('input');
@@ -292,7 +271,6 @@ function createCheckboxes() {
             sensorVisible[i] = checkbox.checked;
             updateChart();
         });
-        
         label.appendChild(checkbox);
         label.appendChild(document.createTextNode(`Sensor ${i + 1}`));
         sensorCheckboxesDiv.appendChild(label);
@@ -302,7 +280,6 @@ function createCheckboxes() {
 // --- Create Chart ---
 function createChart() {
     const datasets = [];
-    
     for (let i = 0; i < NUM_SENSORS; i++) {
         // Temperature dataset (solid line)
         datasets.push({
@@ -316,14 +293,12 @@ function createChart() {
             yAxisID: 'y',
             hidden: !sensorVisible[i]
         });
-        
-        // Humidity dataset (50% opacity)
-        const humidityColor = SENSOR_COLORS[i] + '80'; // Add 50% opacity
+        // Humidity dataset (50% opacity, dashed)
         datasets.push({
             label: `Sensor ${i + 1} Hum`,
             data: [],
-            borderColor: humidityColor,
-            backgroundColor: humidityColor,
+            borderColor: hexToRgba(SENSOR_COLORS[i], 0.5),
+            backgroundColor: hexToRgba(SENSOR_COLORS[i], 0.5),
             borderWidth: 2,
             fill: false,
             tension: 0.1,
@@ -332,7 +307,6 @@ function createChart() {
             hidden: !sensorVisible[i]
         });
     }
-
     chart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -389,115 +363,102 @@ function createChart() {
     });
 }
 
-// --- Fetch Data from Firebase ---
-function fetchData() {
-    const timeRange = parseInt(timeRangeSelect.value);
-    const now = Date.now();
-    const startTime = now - (timeRange * 60 * 1000);
-    
-    // Clear existing data
-    sensorData = {};
-    
-    // Fetch data for each sensor
-    for (let i = 1; i <= NUM_SENSORS; i++) {
-        database.ref(`/sensors/sensor${i}`).once('value', (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                sensorData[`sensor${i}`] = [];
-                
-                Object.keys(data).forEach(timestamp => {
-                    const timestampMs = new Date(timestamp).getTime();
-                    if (timestampMs >= startTime) {
-                        sensorData[`sensor${i}`].push({
-                            timestamp: timestamp,
-                            temperature: data[timestamp].temperature,
-                            humidity: data[timestamp].humidity
-                        });
-                    }
-                });
-                
-                // Sort by timestamp
-                sensorData[`sensor${i}`].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-            }
-            
-            updateChart();
-            updateSerialMonitor();
-            updateSensorStatus();
-        });
-    }
+// --- Utility: Convert Hex to RGBA ---
+function hexToRgba(hex, alpha) {
+    let c = hex.replace('#', '');
+    if (c.length === 3) c = c.split('').map(x => x + x).join('');
+    const num = parseInt(c, 16);
+    return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`;
 }
 
 // --- Setup Real-time Listeners ---
 function setupRealtimeListeners() {
+    // Remove previous listeners
     for (let i = 1; i <= NUM_SENSORS; i++) {
-        database.ref(`/sensors/sensor${i}`).on('child_added', (snapshot) => {
-            const timestamp = snapshot.key;
-            const data = snapshot.val();
-            
-            if (!sensorData[`sensor${i}`]) {
-                sensorData[`sensor${i}`] = [];
-            }
-            
-            sensorData[`sensor${i}`].push({
-                timestamp: timestamp,
-                temperature: data.temperature,
-                humidity: data.humidity
-            });
-            
-            // Keep only data within time range
-            const timeRange = parseInt(timeRangeSelect.value);
-            const cutoffTime = Date.now() - (timeRange * 60 * 1000);
-            sensorData[`sensor${i}`] = sensorData[`sensor${i}`].filter(item => 
-                new Date(item.timestamp).getTime() >= cutoffTime
-            );
-            
-            updateChart();
-            updateSerialMonitor();
-            updateSensorStatus();
-        });
+        database.ref(`/sensors/sensor${i}`).off();
     }
+    // Clear data
+    sensorData = {};
+
+    const timeRange = parseInt(timeRangeSelect.value);
+    const cutoffTime = Date.now() - (timeRange * 60 * 1000);
+
+    for (let i = 1; i <= NUM_SENSORS; i++) {
+        database.ref(`/sensors/sensor${i}`)
+            .orderByKey()
+            .startAt(formatFirebaseTimestamp(cutoffTime))
+            .on('value', (snapshot) => {
+                sensorData[`sensor${i}`] = [];
+                snapshot.forEach((childSnapshot) => {
+                    const data = childSnapshot.val();
+                    sensorData[`sensor${i}`].push({
+                        timestamp: childSnapshot.key,
+                        temperature: data.temperature,
+                        humidity: data.humidity
+                    });
+                });
+                updateChart();
+                updateSerialMonitor();
+                updateSensorStatus();
+            }, (error) => {
+                streamStatusSpan.textContent = 'OFFLINE';
+                streamStatusSpan.style.color = 'red';
+            });
+    }
+}
+
+// Helper function for Firebase timestamp format
+function formatFirebaseTimestamp(timestamp) {
+    // Format: YYYY-MM-DDTHH:mm:ss
+    return new Date(timestamp).toISOString().slice(0, 19);
 }
 
 // --- Update Chart ---
 function updateChart() {
     if (!chart) return;
-    
+
     // Get all unique timestamps and sort them
     const allTimestamps = new Set();
     Object.values(sensorData).forEach(sensorArray => {
         sensorArray.forEach(item => allTimestamps.add(item.timestamp));
     });
-    
     const sortedTimestamps = Array.from(allTimestamps).sort();
-    chart.data.labels = sortedTimestamps.map(ts => new Date(ts).toLocaleTimeString());
-    
+    chart.data.labels = sortedTimestamps.map(ts => {
+        // Show only HH:mm:ss for clarity
+        const d = new Date(ts);
+        if (!isNaN(d.getTime())) {
+            return d.toLocaleTimeString();
+        } else {
+            // If timestamp is not ISO, show as is
+            return ts.split('T')[1] || ts;
+        }
+    });
+
     // Update datasets
     for (let i = 0; i < NUM_SENSORS; i++) {
         const sensorKey = `sensor${i + 1}`;
         const tempData = [];
         const humData = [];
-        
         sortedTimestamps.forEach(timestamp => {
             const dataPoint = sensorData[sensorKey]?.find(item => item.timestamp === timestamp);
             tempData.push(dataPoint ? dataPoint.temperature : null);
             humData.push(dataPoint ? dataPoint.humidity : null);
         });
-        
         // Update temperature dataset
         chart.data.datasets[i * 2].data = tempData;
         chart.data.datasets[i * 2].hidden = !sensorVisible[i];
-        
         // Update humidity dataset
         chart.data.datasets[i * 2 + 1].data = humData;
         chart.data.datasets[i * 2 + 1].hidden = !sensorVisible[i];
     }
-    
+
     chart.update('none');
-    
+
     // Update last updated time
     if (sortedTimestamps.length > 0) {
         const lastTimestamp = sortedTimestamps[sortedTimestamps.length - 1];
-        lastUpdatedSpan.textContent = new Date(lastTimestamp).toLocaleString();
+        const d = new Date(lastTimestamp);
+        lastUpdatedSpan.textContent = !isNaN(d.getTime()) ? d.toLocaleString() : lastTimestamp;
         streamStatusSpan.textContent = 'ONLINE';
         streamStatusSpan.style.color = 'green';
     }
@@ -506,65 +467,53 @@ function updateChart() {
 // --- Update Serial Monitor ---
 function updateSerialMonitor() {
     let output = '';
-    
     for (let i = 1; i <= NUM_SENSORS; i++) {
         const sensorKey = `sensor${i}`;
         if (sensorData[sensorKey] && sensorData[sensorKey].length > 0) {
             const latest = sensorData[sensorKey][sensorData[sensorKey].length - 1];
-            output += `Sensor ${i} -> Temp: ${latest.temperature.toFixed(1)}°C, Hum: ${latest.humidity.toFixed(1)}% at ${latest.timestamp}\n`;
+            output += `Sensor ${i} -> Temp: ${Number(latest.temperature).toFixed(1)}°C, Hum: ${Number(latest.humidity).toFixed(1)}% at ${latest.timestamp}\n`;
         }
     }
-    
     if (output) {
         serialMonitor.textContent = output;
     } else {
         serialMonitor.textContent = 'Serial Monitor: Waiting for data...';
     }
-    
-    // Auto-scroll to bottom
     serialMonitor.scrollTop = serialMonitor.scrollHeight;
 }
 
 // --- Update Sensor Status ---
 function updateSensorStatus() {
     let statusHTML = '';
-    
     for (let i = 1; i <= NUM_SENSORS; i++) {
         const sensorKey = `sensor${i}`;
         let status = 'OFF';
         let color = 'red';
-        
         if (sensorData[sensorKey] && sensorData[sensorKey].length > 0) {
             const latest = sensorData[sensorKey][sensorData[sensorKey].length - 1];
             const lastUpdateTime = new Date(latest.timestamp).getTime();
             const now = Date.now();
-            
             // Consider sensor online if last update was within 30 seconds
             if (now - lastUpdateTime < 30000) {
                 status = 'ON';
                 color = 'green';
             }
         }
-        
         statusHTML += `<div class="sensor-status">Sensor ${i}: <span style="color: ${color};">${status}</span></div>`;
     }
-    
     sensorStatusList.innerHTML = statusHTML;
 }
 
 // --- Event Listeners ---
 timeRangeSelect.addEventListener('change', () => {
-    fetchData();
+    setupRealtimeListeners();
 });
 
 // --- Initialize ---
 document.addEventListener('DOMContentLoaded', () => {
     createCheckboxes();
     createChart();
-    fetchData();
     setupRealtimeListeners();
-    
-    // Update every 10 seconds
     setInterval(() => {
         updateSensorStatus();
     }, 10000);
