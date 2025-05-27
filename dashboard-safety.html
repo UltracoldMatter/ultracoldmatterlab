@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Live Dashboard - Safety Systems</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script> <!-- for time scale -->
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon"></script> <!-- for time scale -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
   <style>
@@ -37,80 +39,111 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Chart setup
+    // Chart setup with time scale on x axis
     const ctx = document.getElementById('sensorChart').getContext('2d');
+    const sensorColors = ['red', 'blue', 'green', 'orange', 'purple', 'brown'];
+
+    // Initialize datasets with empty data arrays
+    const datasets = [];
+    for (let i = 1; i <= 6; i++) {
+      datasets.push({
+        label: `Sensor ${i} Temp (°C)`,
+        borderColor: sensorColors[i - 1],
+        backgroundColor: sensorColors[i - 1],
+        data: [],
+        tension: 0.4,
+        fill: false,
+        yAxisID: 'y',
+      });
+      datasets.push({
+        label: `Sensor ${i} Hum (%)`,
+        borderColor: sensorColors[i - 1],
+        backgroundColor: sensorColors[i - 1],
+        data: [],
+        borderDash: [5, 5],
+        tension: 0.4,
+        fill: false,
+        yAxisID: 'y',
+      });
+    }
+
     const chart = new Chart(ctx, {
       type: 'line',
-      data: {
-        labels: [],
-        datasets: []
-      },
+      data: { datasets },
       options: {
         responsive: true,
         scales: {
-          x: { title: { display: true, text: 'Time' } },
-          y: { title: { display: true, text: 'Value' } }
+          x: {
+            type: 'time',
+            time: {
+              tooltipFormat: 'dd MMM yyyy HH:mm:ss',
+              displayFormats: { second: 'HH:mm:ss' }
+            },
+            title: { display: true, text: 'Time' }
+          },
+          y: {
+            title: { display: true, text: 'Value' },
+            beginAtZero: true
+          }
+        },
+        interaction: {
+          mode: 'nearest',
+          intersect: false,
+        },
+        plugins: {
+          legend: { position: 'top' }
         }
       }
     });
 
     const serialMonitor = document.getElementById('serialMonitor');
     const maxLogEntries = 20;
-    const sensorColors = ['red', 'blue', 'green', 'orange', 'purple', 'brown'];
 
-    // Initialize datasets
-    for (let i = 1; i <= 6; i++) {
-      chart.data.datasets.push({
-        label: `Sensor ${i} Temp`,
-        borderColor: sensorColors[i - 1],
-        backgroundColor: sensorColors[i - 1],
-        data: [],
-        tension: 0.4
-      });
-      chart.data.datasets.push({
-        label: `Sensor ${i} Hum`,
-        borderColor: sensorColors[i - 1],
-        backgroundColor: sensorColors[i - 1],
-        data: [],
-        borderDash: [5, 5],
-        tension: 0.4
-      });
-    }
-
-    function updateChartAndSerial(sensorIndex, temp, hum, timestamp) {
-      const timeLabel = timestamp.split(' ')[1];
-      if (!chart.data.labels.includes(timeLabel)) {
-        chart.data.labels.push(timeLabel);
-        if (chart.data.labels.length > 50) chart.data.labels.shift();
+    // Add new entry to serial monitor log
+    function addLogEntry(text) {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.textContent = text;
+      serialMonitor.prepend(entry);
+      while (serialMonitor.children.length > maxLogEntries) {
+        serialMonitor.removeChild(serialMonitor.lastChild);
       }
-
-      const tIndex = (sensorIndex - 1) * 2;
-      const hIndex = tIndex + 1;
-
-      chart.data.datasets[tIndex].data.push(temp);
-      chart.data.datasets[hIndex].data.push(hum);
-
-      if (chart.data.datasets[tIndex].data.length > 50) chart.data.datasets[tIndex].data.shift();
-      if (chart.data.datasets[hIndex].data.length > 50) chart.data.datasets[hIndex].data.shift();
-
-      chart.update();
-
-      const logLine = `<div class="log-entry">Sensor ${sensorIndex} | Temp: ${temp}°C, Hum: ${hum}%, Time: ${timestamp}</div>`;
-      serialMonitor.innerHTML = logLine + serialMonitor.innerHTML;
-      const entries = serialMonitor.querySelectorAll('.log-entry');
-      if (entries.length > maxLogEntries) entries[entries.length - 1].remove();
     }
 
+    // Add new data point and keep dataset length limited
+    function addDataPoint(dataset, point) {
+      dataset.data.push(point);
+      if (dataset.data.length > 50) {
+        dataset.data.shift();
+      }
+    }
+
+    // Listen for new data on each sensor path
     for (let i = 1; i <= 6; i++) {
       const sensorRef = db.ref(`sensors/sensor${i}`);
-      sensorRef.on('value', snapshot => {
+
+      // Listen for new child added (timestamps as keys)
+      sensorRef.limitToLast(10).on('child_added', snapshot => {
+        const timestamp = snapshot.key; // e.g. "2025-05-27T22:09:17"
         const data = snapshot.val();
-        if (data) {
-          const temp = parseFloat(data.temperature);
-          const hum = parseFloat(data.humidity);
-          const timestamp = new Date(data.timestamp).toLocaleString();
-          updateChartAndSerial(i, temp, hum, timestamp);
-        }
+
+        if (!data || data.temperature === undefined || data.humidity === undefined) return;
+
+        // Parse time
+        const time = new Date(timestamp);
+        if (isNaN(time)) return; // invalid date
+
+        const temp = parseFloat(data.temperature);
+        const hum = parseFloat(data.humidity);
+
+        // Update chart data: temp dataset index = (i-1)*2, hum dataset index = (i-1)*2 + 1
+        addDataPoint(chart.data.datasets[(i-1)*2], { x: time, y: temp });
+        addDataPoint(chart.data.datasets[(i-1)*2 + 1], { x: time, y: hum });
+
+        chart.update('none');
+
+        // Add to serial monitor with formatted time
+        addLogEntry(`Sensor ${i} | Temp: ${temp.toFixed(2)} °C | Hum: ${hum.toFixed(2)} % | Time: ${time.toLocaleString()}`);
       });
     }
   </script>
