@@ -60,8 +60,9 @@
       flex-direction: column;
       align-items: center;
       padding: 1rem;
-      width: 100%;
-      box-sizing: border-box;
+      max-width: 1200px;
+      margin: 0 auto;
+      min-width: 320px;
     }
     .top-bar {
       display: flex;
@@ -70,7 +71,7 @@
       margin-bottom: 1.2rem;
       gap: 1.5rem;
       width: 100%;
-      max-width: 1600px;
+      max-width: 1200px;
     }
     .top-bar select, .top-bar button {
       padding: 0.5rem 1rem;
@@ -79,7 +80,7 @@
     }
     .left-panel {
       width: 100%;
-      max-width: 1600px;
+      max-width: 1200px;
       margin: 0 auto;
       display: flex;
       flex-direction: column;
@@ -155,91 +156,91 @@
 </head>
 <body>
 
-<!-- Navigation Bar -->
-<div class="navbar">
-  <div class="nav-links">
-    <a href="index.html">Home</a>
-    <a href="description.html">Description</a>
-    <a href="dashboard-temp-humidity.html">Live Dashboard - Temperature & Humidity</a>
-    <a href="dashboard-safety.html">Live Dashboard - Safety Monitoring</a>
-  </div>
-</div>
-
-<!-- Header -->
-<div class="lab-header">
-  ULTRACOLD MATTER LAB
-</div>
-<div class="sub-header">
-  Hemvati Nandan Bahuguna Garhwal University (A Central University), Srinagar, Uttarakhand, India (249161)
-</div>
-
-<!-- Main Content -->
-<div class="main-container">
-
-  <!-- Top Controls -->
-  <div class="top-bar">
-    <div>
-      <label for="time-range" style="font-weight:600;color:#003366;">Time Range:</label>
-      <select id="time-range">
-        <option value="15">Past 15 Minutes</option>
-        <option value="30">Past 30 Minutes</option>
-        <option value="60" selected>Past 1 Hour</option>
-        <option value="120">Past 2 Hours</option>
-        <option value="360">Past 6 Hours</option>
-        <option value="720">Past 12 Hours</option>
-        <option value="1440">Past 1 Day</option>
-        <option value="10080">Past 1 Week</option>
-        <option value="43200">Past 1 Month</option>
-      </select>
-      <button id="resetZoomBtn">Reset Zoom</button>
+  <!-- Navigation Bar -->
+  <div class="navbar">
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="description.html">Description</a>
+      <a href="dashboard-temp-humidity.html">Live Dashboard - Temperature & Humidity</a>
+      <a href="dashboard-safety.html">Live Dashboard - Safety Monitoring</a>
     </div>
   </div>
 
-  <div class="left-panel">
-
-    <!-- Temperature Panel -->
-    <div class="panel">
-      <h2>Temperature Panel</h2>
-      <div class="checkbox-group" id="temp-checkboxes">
-        <label style="color:#FF6384;"><input type="checkbox" value="sensor1" checked> Sensor 1</label>
-        <label style="color:#36A2EB;"><input type="checkbox" value="sensor2" checked> Sensor 2</label>
-        <label style="color:#FFCE56;"><input type="checkbox" value="sensor3" checked> Sensor 3</label>
-        <label style="color:#4BC0C0;"><input type="checkbox" value="sensor4" checked> Sensor 4</label>
-        <label style="color:#9966FF;"><input type="checkbox" value="sensor5" checked> Sensor 5</label>
-        <label style="color:#FF9F40;"><input type="checkbox" value="sensor6" checked> Sensor 6</label>
-      </div>
-      <div class="chart-container">
-        <canvas id="tempChart" class="chart-canvas"></canvas>
-      </div>
-      <div class="serial-monitor" id="temp-serial">
-        Serial Monitor: Temperature data streaming...
-      </div>
-    </div>
-
-    <!-- Humidity Panel -->
-    <div class="panel">
-      <h2>Humidity Panel</h2>
-      <div class="checkbox-group" id="hum-checkboxes">
-        <label style="color:#FF6384;"><input type="checkbox" value="sensor1" checked> Sensor 1</label>
-        <label style="color:#36A2EB;"><input type="checkbox" value="sensor2" checked> Sensor 2</label>
-        <label style="color:#FFCE56;"><input type="checkbox" value="sensor3" checked> Sensor 3</label>
-        <label style="color:#4BC0C0;"><input type="checkbox" value="sensor4" checked> Sensor 4</label>
-        <label style="color:#9966FF;"><input type="checkbox" value="sensor5" checked> Sensor 5</label>
-        <label style="color:#FF9F40;"><input type="checkbox" value="sensor6" checked> Sensor 6</label>
-      </div>
-      <div class="chart-container">
-        <canvas id="humChart" class="chart-canvas"></canvas>
-      </div>
-      <div class="serial-monitor" id="hum-serial">
-        Serial Monitor: Humidity data streaming...
-      </div>
-    </div>
-
+  <!-- Header -->
+  <div class="lab-header">
+    ULTRACOLD MATTER LAB
   </div>
-</div>
+  <div class="sub-header">
+    Hemvati Nandan Bahuguna Garhwal University (A Central University), Srinagar, Uttarakhand, India (249161)
+  </div>
 
-<!-- Footer -->
-<div class="footer"></div>
+  <!-- Main Content -->
+  <div class="main-container">
+
+    <!-- Top Controls -->
+    <div class="top-bar">
+      <div>
+        <label for="time-range" style="font-weight:600;color:#003366;">Time Range:</label>
+        <select id="time-range">
+          <option value="15">Past 15 Minutes</option>
+          <option value="30">Past 30 Minutes</option>
+          <option value="60" selected>Past 1 Hour</option>
+          <option value="120">Past 2 Hours</option>
+          <option value="360">Past 6 Hours</option>
+          <option value="720">Past 12 Hours</option>
+          <option value="1440">Past 1 Day</option>
+          <option value="10080">Past 1 Week</option>
+          <option value="43200">Past 1 Month</option>
+        </select>
+        <button id="resetZoomBtn">Reset Zoom</button>
+      </div>
+    </div>
+
+    <div class="left-panel">
+
+      <!-- Temperature Panel -->
+      <div class="panel">
+        <h2>Temperature Panel</h2>
+        <div class="checkbox-group" id="temp-checkboxes">
+          <label style="color:#FF6384;"><input type="checkbox" value="sensor1" checked> Sensor 1</label>
+          <label style="color:#36A2EB;"><input type="checkbox" value="sensor2" checked> Sensor 2</label>
+          <label style="color:#FFCE56;"><input type="checkbox" value="sensor3" checked> Sensor 3</label>
+          <label style="color:#4BC0C0;"><input type="checkbox" value="sensor4" checked> Sensor 4</label>
+          <label style="color:#9966FF;"><input type="checkbox" value="sensor5" checked> Sensor 5</label>
+          <label style="color:#FF9F40;"><input type="checkbox" value="sensor6" checked> Sensor 6</label>
+        </div>
+        <div class="chart-container">
+          <canvas id="tempChart" class="chart-canvas"></canvas>
+        </div>
+        <div class="serial-monitor" id="temp-serial">
+          Serial Monitor: Temperature data streaming...
+        </div>
+      </div>
+
+      <!-- Humidity Panel -->
+      <div class="panel">
+        <h2>Humidity Panel</h2>
+        <div class="checkbox-group" id="hum-checkboxes">
+          <label style="color:#FF6384;"><input type="checkbox" value="sensor1" checked> Sensor 1</label>
+          <label style="color:#36A2EB;"><input type="checkbox" value="sensor2" checked> Sensor 2</label>
+          <label style="color:#FFCE56;"><input type="checkbox" value="sensor3" checked> Sensor 3</label>
+          <label style="color:#4BC0C0;"><input type="checkbox" value="sensor4" checked> Sensor 4</label>
+          <label style="color:#9966FF;"><input type="checkbox" value="sensor5" checked> Sensor 5</label>
+          <label style="color:#FF9F40;"><input type="checkbox" value="sensor6" checked> Sensor 6</label>
+        </div>
+        <div class="chart-container">
+          <canvas id="humChart" class="chart-canvas"></canvas>
+        </div>
+        <div class="serial-monitor" id="hum-serial">
+          Serial Monitor: Humidity data streaming...
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer"></div>
 
 <script>
 // --- Firebase Config ---
@@ -258,26 +259,24 @@ const db = firebase.database();
 // --- Sensor IDs and Colors ---
 const sensorIds = ['sensor1', 'sensor2', 'sensor3', 'sensor4', 'sensor5', 'sensor6'];
 const sensorColors = [
-  'rgba(255,99,132,1)',
-  'rgba(54,162,235,1)',
-  'rgba(255,206,86,1)',
-  'rgba(75,192,192,1)',
-  'rgba(153,102,255,1)',
-  'rgba(255,159,64,1)'
+  'rgba(255,99,132,1)',   // Sensor 1 - Red
+  'rgba(54,162,235,1)',   // Sensor 2 - Blue
+  'rgba(255,206,86,1)',   // Sensor 3 - Yellow
+  'rgba(75,192,192,1)',   // Sensor 4 - Green
+  'rgba(153,102,255,1)',  // Sensor 5 - Purple
+  'rgba(255,159,64,1)'    // Sensor 6 - Orange
 ];
+
+// --- Data Structures ---
+let allData = {}; // { sensorId: { timestamp: {temperature, humidity} } }
 
 // --- Chart.js Setup ---
 const tempCtx = document.getElementById('tempChart').getContext('2d');
-const humCtx = document.getElementById('humChart').getContext('2d');
+const humCtx  = document.getElementById('humChart').getContext('2d');
 let tempChart, humChart;
 function buildChart(ctx, datasets, isTemp) {
-  const borderWidth = 2;
-  const borderDash = isTemp ? [] : [5, 5];
-  datasets.forEach(ds => {
-    ds.borderWidth = borderWidth;
-    ds.borderDash = borderDash;
-    ds.pointRadius = 0;
-  });
+  const borderWidths = isTemp ? 8 : 4;
+  const borderDash   = isTemp ? [] : [8,6];
   return new Chart(ctx, {
     type: 'line',
     data: { datasets: datasets },
@@ -307,28 +306,215 @@ function buildChart(ctx, datasets, isTemp) {
         tooltip: {
           enabled: true,
           mode: 'nearest',
+          intersect: false,
+          titleFont: { size: 16 },
+          bodyFont: { size: 15 }
         }
+      },
+      interaction: {
+        mode: 'nearest',
+        intersect: false
       },
       scales: {
         x: {
           type: 'time',
           time: {
-            tooltipFormat: 'PPpp',
-            unit: 'minute'
+            unit: 'minute',
+            tooltipFormat: 'HH:mm:ss',
+            displayFormats: { minute: 'HH:mm:ss', hour: 'HH:mm' }
           },
-          ticks: {
-            color: '#003366'
-          }
+          ticks: { color: "#003366", font: { size: 13 }, autoSkip: true, maxRotation: 0 },
+          title: { display: true, text: 'Time', color: "#003366", font: { size: 15 } },
+          grid: { color: "#e0e0e0" }
         },
         y: {
-          ticks: {
-            color: '#003366'
-          }
+          ticks: { color: "#003366", font: { size: 13 } },
+          beginAtZero: false,
+          title: { display: true, text: isTemp ? 'Temperature (°C)' : 'Humidity (%)', color: "#003366", font: { size: 15 } },
+          grid: { color: "#e0e0e0" }
         }
+      },
+      animation: false,
+      elements: {
+        line: { borderWidth: borderWidths, borderDash: borderDash }
       }
     }
   });
 }
+
+// --- Helper: Color Mixer for Humidity Line ---
+function mixWhite(color, percent) {
+  const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  if (!match) return color;
+  const r = Math.round((1 - percent) * parseInt(match[1]) + percent * 255);
+  const g = Math.round((1 - percent) * parseInt(match[2]) + percent * 255);
+  const b = Math.round((1 - percent) * parseInt(match[3]) + percent * 255);
+  return rgba(${r},${g},${b},0.7);
+}
+
+// --- Prepare Data for Each Chart ---
+function prepareTempChartData() {
+  const selected = Array.from(document.querySelectorAll('#temp-checkboxes input[type=checkbox]'))
+    .map((cb, idx) => cb.checked ? sensorIds[idx] : null).filter(Boolean);
+  const now = new Date();
+  const rangeMinutes = parseInt(document.getElementById('time-range').value);
+  const minTime = new Date(now.getTime() - rangeMinutes*60000);
+  const datasets = [];
+  selected.forEach((sensorId, idx) => {
+    const colorIdx = sensorIds.indexOf(sensorId);
+    const data = [];
+    if (allData[sensorId]) {
+      Object.entries(allData[sensorId]).forEach(([timestamp, values]) => {
+        const dt = new Date(timestamp);
+        if (!isNaN(dt) && dt >= minTime && dt <= now && typeof values.temperature === 'number') {
+          data.push({ x: dt, y: values.temperature });
+        }
+      });
+    }
+    datasets.push({
+      label: Sensor ${colorIdx+1},
+      data: data,
+      borderColor: sensorColors[colorIdx],
+      backgroundColor: sensorColors[colorIdx].replace('1)', '0.15)'),
+      borderWidth: 8,
+      fill: false,
+      tension: 0.3,
+      pointRadius: 6,
+      pointHoverRadius: 10,
+      order: 1,
+      borderDash: []
+    });
+  });
+  return datasets;
+}
+function prepareHumChartData() {
+  const selected = Array.from(document.querySelectorAll('#hum-checkboxes input[type=checkbox]'))
+    .map((cb, idx) => cb.checked ? sensorIds[idx] : null).filter(Boolean);
+  const now = new Date();
+  const rangeMinutes = parseInt(document.getElementById('time-range').value);
+  const minTime = new Date(now.getTime() - rangeMinutes*60000);
+  const datasets = [];
+  selected.forEach((sensorId, idx) => {
+    const colorIdx = sensorIds.indexOf(sensorId);
+    const data = [];
+    if (allData[sensorId]) {
+      Object.entries(allData[sensorId]).forEach(([timestamp, values]) => {
+        const dt = new Date(timestamp);
+        if (!isNaN(dt) && dt >= minTime && dt <= now && typeof values.humidity === 'number') {
+          data.push({ x: dt, y: values.humidity });
+        }
+      });
+    }
+    datasets.push({
+      label: Sensor ${colorIdx+1},
+      data: data,
+      borderColor: mixWhite(sensorColors[colorIdx], 0.5),
+      backgroundColor: 'rgba(255,255,255,0.1)',
+      borderWidth: 4,
+      fill: false,
+      tension: 0.3,
+      pointRadius: 6,
+      pointHoverRadius: 10,
+      order: 1,
+      borderDash: [8, 6]
+    });
+  });
+  return datasets;
+}
+
+// --- Serial Monitors ---
+function updateTempSerial() {
+  const selected = Array.from(document.querySelectorAll('#temp-checkboxes input[type=checkbox]'))
+    .map((cb, idx) => cb.checked ? sensorIds[idx] : null).filter(Boolean);
+  const now = new Date();
+  const rangeMinutes = parseInt(document.getElementById('time-range').value);
+  const minTime = new Date(now.getTime() - rangeMinutes*60000);
+  let entries = [];
+  selected.forEach(sensorId => {
+    if (allData[sensorId]) {
+      Object.entries(allData[sensorId]).forEach(([timestamp, values]) => {
+        const dt = new Date(timestamp);
+        if (!isNaN(dt) && dt >= minTime && dt <= now && typeof values.temperature === 'number') {
+          entries.push({
+            sensorId,
+            timestamp,
+            temp: values.temperature
+          });
+        }
+      });
+    }
+  });
+  entries.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  document.getElementById('temp-serial').innerHTML = entries.slice(0, 40)
+    .map(e => Sensor ${sensorIds.indexOf(e.sensorId)+1} -> Temp: ${e.temp.toFixed(2)} °C at ${e.timestamp})
+    .map(e => <div class="serial-entry">${e}</div>).join('');
+}
+function updateHumSerial() {
+  const selected = Array.from(document.querySelectorAll('#hum-checkboxes input[type=checkbox]'))
+    .map((cb, idx) => cb.checked ? sensorIds[idx] : null).filter(Boolean);
+  const now = new Date();
+  const rangeMinutes = parseInt(document.getElementById('time-range').value);
+  const minTime = new Date(now.getTime() - rangeMinutes*60000);
+  let entries = [];
+  selected.forEach(sensorId => {
+    if (allData[sensorId]) {
+      Object.entries(allData[sensorId]).forEach(([timestamp, values]) => {
+        const dt = new Date(timestamp);
+        if (!isNaN(dt) && dt >= minTime && dt <= now && typeof values.humidity === 'number') {
+          entries.push({
+            sensorId,
+            timestamp,
+            hum: values.humidity
+          });
+        }
+      });
+    }
+  });
+  entries.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  document.getElementById('hum-serial').innerHTML = entries.slice(0, 40)
+    .map(e => Sensor ${sensorIds.indexOf(e.sensorId)+1} -> Hum: ${e.hum.toFixed(2)} % at ${e.timestamp})
+    .map(e => <div class="serial-entry">${e}</div>).join('');
+}
+
+// --- Listen to Firebase for all sensors ---
+sensorIds.forEach(sensorId => {
+  allData[sensorId] = {};
+  const sensorRef = db.ref('sensors/' + sensorId);
+  sensorRef.limitToLast(1000).on('value', snapshot => {
+    const data = snapshot.val();
+    allData[sensorId] = data || {};
+    if (tempChart) tempChart.destroy();
+    tempChart = buildChart(tempCtx, prepareTempChartData(), true);
+    if (humChart) humChart.destroy();
+    humChart = buildChart(humCtx, prepareHumChartData(), false);
+    updateTempSerial();
+    updateHumSerial();
+  });
+});
+
+// --- UI Events ---
+Array.from(document.querySelectorAll('#temp-checkboxes input[type=checkbox],#hum-checkboxes input[type=checkbox]')).forEach(cb => {
+  cb.addEventListener('change', () => {
+    if (tempChart) tempChart.destroy();
+    tempChart = buildChart(tempCtx, prepareTempChartData(), true);
+    updateTempSerial();
+    if (humChart) humChart.destroy();
+    humChart = buildChart(humCtx, prepareHumChartData(), false);
+    updateHumSerial();
+  });
+});
+document.getElementById('time-range').addEventListener('change', () => {
+  if (tempChart) tempChart.destroy();
+  tempChart = buildChart(tempCtx, prepareTempChartData(), true);
+  updateTempSerial();
+  if (humChart) humChart.destroy();
+  humChart = buildChart(humCtx, prepareHumChartData(), false);
+  updateHumSerial();
+});
+document.getElementById('resetZoomBtn').addEventListener('click', () => {
+  if (tempChart) tempChart.resetZoom();
+  if (humChart) humChart.resetZoom();
+});
 </script>
 </body>
 </html>
