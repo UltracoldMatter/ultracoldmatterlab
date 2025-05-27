@@ -97,7 +97,14 @@
     const sensorRef = db.ref('sensors/sensor1');
     sensorRef.limitToLast(30).on('value', snapshot => {
       const data = snapshot.val();
-      if (!data) return;
+      if (!data) {
+        serialMonitor.innerHTML = '<div class="serial-entry">No data available.</div>';
+        chartData.labels.length = 0;
+        chartData.datasets[0].data.length = 0;
+        chartData.datasets[1].data.length = 0;
+        liveChart.update();
+        return;
+      }
       // Sort by timestamp key
       const entries = Object.entries(data).sort(([a], [b]) => a.localeCompare(b));
       // Reset chart data
@@ -106,13 +113,18 @@
       chartData.datasets[1].data.length = 0;
       serialBuffer = [];
       entries.forEach(([timestamp, values]) => {
-        // Add to chart
+        // Defensive checks for missing or invalid data
+        const temp = values && typeof values.temperature === 'number' ? values.temperature : null;
+        const hum = values && typeof values.humidity === 'number' ? values.humidity : null;
+
+        // Add to chart (use null for missing data)
         chartData.labels.push(timestamp.slice(11,19)); // Show only HH:MM:SS
-        chartData.datasets[0].data.push(values.temperature);
-        chartData.datasets[1].data.push(values.humidity);
+        chartData.datasets[0].data.push(temp);
+        chartData.datasets[1].data.push(hum);
+
         // Add to serial buffer
         serialBuffer.push(
-          `<div class="serial-entry">Sensor 1 &rarr; Temp: <b>${values.temperature.toFixed(2)} °C</b>, Hum: <b>${values.humidity.toFixed(2)} %</b> at <span style="color:#aaa">${timestamp}</span></div>`
+          `<div class="serial-entry">Sensor 1 &rarr; Temp: <b>${temp !== null ? temp.toFixed(2) + ' °C' : 'N/A'}</b>, Hum: <b>${hum !== null ? hum.toFixed(2) + ' %' : 'N/A'}</b> at <span style="color:#aaa">${timestamp}</span></div>`
         );
       });
       // Update chart
