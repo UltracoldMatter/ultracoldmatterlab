@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Live Temperature & Humidity Monitor</title>
+  <title>Live Temperature & Humidity Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Firebase CDN -->
+  <!-- Firebase CDN (compat version for static HTML) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <style>
@@ -93,12 +93,12 @@
     let serialBuffer = [];
 
     // --- Fetch and Stream Data ---
-    // Change 'sensor1' to your sensor name if needed, or loop for multiple sensors
+    // Adjust this path if your data is under a different node
     const sensorRef = db.ref('sensors/sensor1');
     sensorRef.limitToLast(30).on('value', snapshot => {
       const data = snapshot.val();
       if (!data) return;
-      // Sort by timestamp
+      // Sort by timestamp key
       const entries = Object.entries(data).sort(([a], [b]) => a.localeCompare(b));
       // Reset chart data
       chartData.labels.length = 0;
@@ -121,8 +121,7 @@
       serialMonitor.innerHTML = serialBuffer.slice(-MAX_SERIAL_ENTRIES).reverse().join('');
     });
 
-    // --- Optional: For Multiple Sensors ---
-    // You can loop through 'sensors' node and repeat above logic for each sensor if needed.
+    // --- For multiple sensors: repeat above logic for each sensor node ---
   </script>
 </body>
 </html>
