@@ -1,95 +1,140 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Live Sensor 1 Data</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <style>
-    body { font-family: Arial; background: #f4f4f4; padding: 20px; }
-    h2 { text-align: center; }
-    canvas { background: white; border: 1px solid #ccc; padding: 10px; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Live Temp + Humidity Sensor1</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 700px;
+    margin: 20px auto;
+    text-align: center;
+  }
+  canvas {
+    max-width: 100%;
+  }
+</style>
 </head>
 <body>
-  <h2>🔥 Sensor 1 Live Data (Temperature + Humidity)</h2>
-  <canvas id="liveChart" height="100"></canvas>
 
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyATktR2jpo9ghUY0_MqpZh_KP5jrW-6YZE",
-      authDomain: "ultracoldmatterlablive.firebaseapp.com",
-      databaseURL: "https://ultracoldmatterlablive-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "ultracoldmatterlablive",
-      storageBucket: "ultracoldmatterlablive.appspot.com",
-      messagingSenderId: "973389235899",
-      appId: "1:973389235899:web:xxxxxxxxxx"
-    };
+<h2>Live Temperature + Humidity (Sensor 1)</h2>
+<canvas id="liveChart" height="150"></canvas>
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+<script>
+  // Your Firebase config - do NOT expose private keys or secrets here
+  const firebaseConfig = {
+    apiKey: "AIzaSyATktR2jpo9ghUY0_MqpZh_KP5jrW-6YZE",
+    authDomain: "ultracoldmatterlablive.firebaseapp.com",
+    databaseURL: "https://ultracoldmatterlablive-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "ultracoldmatterlablive",
+    storageBucket: "ultracoldmatterlablive.appspot.com",
+    messagingSenderId: "973389235899",
+    appId: "1:973389235899:web:xxxxxxxx" // Replace with your actual appId
+  };
 
-    const ctx = document.getElementById('liveChart').getContext('2d');
-    const labels = [];
-    const tempData = [];
-    const humData = [];
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
 
-    const chart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [
-          {
-            label: 'Temperature (°C)',
-            data: tempData,
-            borderColor: 'blue',
-            backgroundColor: 'transparent',
-            tension: 0.3,
-          },
-          {
-            label: 'Humidity (%)',
-            data: humData,
-            borderColor: 'rgba(0, 0, 255, 0.5)',
-            borderDash: [6, 4],
-            backgroundColor: 'transparent',
-            tension: 0.3,
-          }
-        ]
+  // Chart.js setup
+  const ctx = document.getElementById('liveChart').getContext('2d');
+  const labels = [];
+  const tempData = [];
+  const humData = [];
+
+  const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Temperature (°C)',
+          data: tempData,
+          borderColor: 'blue',
+          backgroundColor: 'transparent',
+          tension: 0.3,
+          fill: false,
+          yAxisID: 'y',
+          borderWidth: 2
+        },
+        {
+          label: 'Humidity (%)',
+          data: humData,
+          borderColor: 'rgba(0,0,255,0.5)',
+          borderDash: [5, 5],
+          backgroundColor: 'transparent',
+          tension: 0.3,
+          fill: false,
+          yAxisID: 'y1',
+          borderWidth: 2
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      animation: false,
+      interaction: {
+        mode: 'nearest',
+        intersect: false,
       },
-      options: {
-        responsive: true,
-        animation: false,
-        scales: {
-          x: {
-            title: { display: true, text: 'Time' }
-          },
-          y: {
-            title: { display: true, text: 'Value' },
-            suggestedMin: 0,
-            suggestedMax: 100
+      stacked: false,
+      scales: {
+        x: {
+          title: { display: true, text: 'Timestamp' },
+          ticks: {
+            maxRotation: 90,
+            minRotation: 45,
+            maxTicksLimit: 10
+          }
+        },
+        y: {
+          type: 'linear',
+          position: 'left',
+          title: { display: true, text: 'Temperature (°C)' },
+          suggestedMin: 0,
+          suggestedMax: 50
+        },
+        y1: {
+          type: 'linear',
+          position: 'right',
+          title: { display: true, text: 'Humidity (%)' },
+          suggestedMin: 0,
+          suggestedMax: 100,
+          grid: {
+            drawOnChartArea: false
           }
         }
       }
-    });
+    }
+  });
 
-    const ref = db.ref("sensors/sensor1");
-    ref.limitToLast(1).on("child_added", snapshot => {
-      const ts = snapshot.key;
-      const data = snapshot.val();
+  // Reference to sensor1 node
+  const sensorRef = db.ref("sensors/sensor1");
 
-      labels.push(ts);
-      tempData.push(data.temperature);
-      humData.push(data.humidity);
+  // Listen for new readings
+  sensorRef.limitToLast(30).on("child_added", snapshot => {
+    const ts = snapshot.key;   // e.g. "2025-05-27T13:06:11"
+    const val = snapshot.val();
 
-      if (labels.length > 30) {
-        labels.shift();
-        tempData.shift();
-        humData.shift();
-      }
+    // Push new data
+    labels.push(ts);
+    tempData.push(val.temperature);
+    humData.push(val.humidity);
 
-      chart.update();
-    });
-  </script>
+    // Keep max 30 points on chart
+    if (labels.length > 30) {
+      labels.shift();
+      tempData.shift();
+      humData.shift();
+    }
+
+    chart.update();
+  });
+</script>
+
 </body>
 </html>
