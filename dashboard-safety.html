@@ -1,99 +1,184 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Live Sensor Graphs</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <style>
-    canvas { margin-bottom: 40px; }
-    h2 { margin-top: 50px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-time Sensor Data</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        .sensor-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .sensor-card {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            width: 300px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .sensor-card:hover {
+            transform: translateY(-5px);
+        }
+        .sensor-card h2 {
+            margin-top: 0;
+            color: #3498db;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .sensor-card p {
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+        .sensor-card .timestamp {
+            font-size: 0.8em;
+            color: #7f8c8d;
+            margin-top: 15px;
+            text-align: right;
+        }
+        .loading {
+            text-align: center;
+            font-size: 1.2em;
+            color: #7f8c8d;
+        }
+    </style>
 </head>
 <body>
-  <h1>Live Temperature & Humidity - 6 Sensors</h1>
 
-  <div id="charts"></div>
+    <h1>🌡️💧 Live Sensor Readings</h1>
 
-  <script>
-    // Initialize Firebase
-    const firebaseConfig = {
-      apiKey: "AIzaSyATktR2jpo9ghUY0_MqpZh_KP5jrW-6YZE",
-      authDomain: "ultracoldmatterlablive.firebaseapp.com",
-      databaseURL: "https://ultracoldmatterlablive-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "ultracoldmatterlablive",
-      storageBucket: "ultracoldmatterlablive.appspot.com",
-      messagingSenderId: "973389235899",
-      appId: "1:973389235899:web:your_app_id" // Replace with your app ID if needed
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    <div class="sensor-container" id="sensorContainer">
+        <p class="loading" id="loadingMessage">Loading sensor data...</p>
+    </div>
 
-    const sensors = ['sensor1', 'sensor2', 'sensor3', 'sensor4', 'sensor5', 'sensor6'];
-    const charts = {};
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
-    const chartContainer = document.getElementById("charts");
+    <script>
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyATktR2jpo9ghUY0_MqpZh_KP5jrW-6YZE", // Use your actual API key
+            authDomain: "ultracoldmatterlablive.firebaseapp.com",
+            databaseURL: "https://ultracoldmatterlablive-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "ultracoldmatterlablive",
+            storageBucket: "ultracoldmatterlablive.firebasestorage.app",
+            messagingSenderId: "75894080963",
+            appId: "1:75894080963:web:cfa41a9bd08d4f567f6976"
+        };
 
-    sensors.forEach(sensor => {
-      // Create canvas for each sensor
-      const canvas = document.createElement("canvas");
-      canvas.id = `${sensor}-chart`;
-      chartContainer.appendChild(document.createElement("h2")).innerText = sensor.toUpperCase();
-      chartContainer.appendChild(canvas);
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
 
-      const ctx = canvas.getContext("2d");
+        const sensorContainer = document.getElementById('sensorContainer');
+        const loadingMessage = document.getElementById('loadingMessage');
 
-      charts[sensor] = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: [],
-          datasets: [
-            {
-              label: 'Temperature (°C)',
-              borderColor: 'red',
-              data: [],
-              fill: false
-            },
-            {
-              label: 'Humidity (%)',
-              borderColor: 'blue',
-              borderDash: [5, 5],
-              data: [],
-              fill: false
+        // --- Configuration for your sensors ---
+        const numberOfSensors = 6; // Set this to the number of DHT11 sensors you have
+        const sensorsBasePath = "sensors/"; // Path to your "sensors" node in Firebase
+
+        // Function to create or update a sensor card
+        function displaySensorData(sensorId, data, timestamp) {
+            let sensorCard = document.getElementById(sensorId);
+            if (!sensorCard) {
+                sensorCard = document.createElement('div');
+                sensorCard.classList.add('sensor-card');
+                sensorCard.id = sensorId;
+                sensorContainer.appendChild(sensorCard);
             }
-          ]
-        },
-        options: {
-          responsive: true,
-          scales: {
-            x: { type: 'time', time: { unit: 'minute' }, title: { display: true, text: 'Time' }},
-            y: { title: { display: true, text: 'Value' } }
-          }
+
+            const formattedTimestamp = new Date(timestamp).toLocaleString();
+
+            sensorCard.innerHTML = `
+                <h2>${sensorId.charAt(0).toUpperCase() + sensorId.slice(1)}</h2>
+                <p>Temperature: <strong>${data.temperature !== undefined ? data.temperature.toFixed(1) : 'N/A'} &deg;C</strong></p>
+                <p>Humidity: <strong>${data.humidity !== undefined ? data.humidity : 'N/A'} %</strong></p>
+                <p class="timestamp">Last updated: ${formattedTimestamp}</p>
+            `;
         }
-      });
 
-      // Firebase listener for each sensor
-      db.ref(`sensors/${sensor}`).limitToLast(20).on('value', snapshot => {
-        const data = snapshot.val();
-        if (!data) return;
+        // Function to fetch the latest reading for a sensor
+        function listenToSensor(sensorId) {
+            const sensorRef = database.ref(sensorsBasePath + sensorId);
 
-        const labels = [];
-        const tempData = [];
-        const humidData = [];
+            // Listen for the latest child added (latest timestamp)
+            sensorRef.orderByKey().limitToLast(1).on('child_added', (snapshot) => {
+                if (loadingMessage) {
+                    loadingMessage.style.display = 'none'; // Hide loading message once data starts coming in
+                }
+                const timestamp = snapshot.key;
+                const data = snapshot.val();
+                if (data && (data.temperature !== undefined || data.humidity !== undefined)) {
+                    displaySensorData(sensorId, data, timestamp);
+                } else {
+                    console.warn(`Incomplete data for ${sensorId} at ${timestamp}:`, data);
+                    // Optionally display a message for this sensor if data is incomplete
+                     let sensorCard = document.getElementById(sensorId);
+                    if (!sensorCard) {
+                        sensorCard = document.createElement('div');
+                        sensorCard.classList.add('sensor-card');
+                        sensorCard.id = sensorId;
+                        sensorContainer.appendChild(sensorCard);
+                    }
+                    sensorCard.innerHTML = `
+                        <h2>${sensorId.charAt(0).toUpperCase() + sensorId.slice(1)}</h2>
+                        <p>Temperature: N/A</p>
+                        <p>Humidity: N/A</p>
+                        <p>Data not available or incomplete.</p>
+                        <p class="timestamp">Timestamp: ${new Date(timestamp).toLocaleString()}</p>
+                    `;
+                }
+            });
 
-        Object.keys(data).sort().forEach(ts => {
-          labels.push(new Date(ts));
-          tempData.push(data[ts].temperature || null);
-          humidData.push(data[ts].humidity || null);
-        });
+            // Also handle if the latest child's data changes (though less common with timestamp keys)
+            sensorRef.orderByKey().limitToLast(1).on('child_changed', (snapshot) => {
+                 if (loadingMessage) {
+                    loadingMessage.style.display = 'none';
+                }
+                const timestamp = snapshot.key;
+                const data = snapshot.val();
+                 if (data && (data.temperature !== undefined || data.humidity !== undefined)) {
+                    displaySensorData(sensorId, data, timestamp);
+                }
+            });
+        }
 
-        charts[sensor].data.labels = labels;
-        charts[sensor].data.datasets[0].data = tempData;
-        charts[sensor].data.datasets[1].data = humidData;
-        charts[sensor].update();
-      });
-    });
-  </script>
+        // Initialize listeners for all sensors
+        for (let i = 1; i <= numberOfSensors; i++) {
+            const sensorId = `sensor${i}`;
+            // Pre-create placeholder cards if you want them to appear before data arrives
+            let sensorCard = document.createElement('div');
+            sensorCard.classList.add('sensor-card');
+            sensorCard.id = sensorId;
+            sensorCard.innerHTML = `<h2>Sensor ${i}</h2><p class="loading">Waiting for data...</p>`;
+            sensorContainer.appendChild(sensorCard);
+
+            listenToSensor(sensorId);
+        }
+
+        // Initial check if no data is loaded after a few seconds
+        setTimeout(() => {
+            if (loadingMessage && loadingMessage.style.display !== 'none' && sensorContainer.children.length <= 1) {
+                 // Check if only the loading message or initial placeholder is there
+                loadingMessage.textContent = 'No data received. Please check your Firebase setup and sensor connections.';
+            }
+        }, 10000); // 10 seconds timeout for initial data
+
+    </script>
+
 </body>
 </html>
