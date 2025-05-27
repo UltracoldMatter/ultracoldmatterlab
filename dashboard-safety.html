@@ -3,94 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Live Dashboard - Safety Monitoring</title>
+  <title>Live Dashboard - Temperature & Humidity</title>
   <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #f9f9f9;
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-    }
-
-    .navbar {
-      background-color: #ffffff;
-      color: #003366;
-      padding: 1rem 2rem;
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-      border-bottom: 2px solid #ccc;
-    }
-
-    .nav-links a {
-      color: #003366;
-      text-decoration: none;
-      margin-left: 1.5rem;
-      font-weight: 600;
-    }
-
-    .nav-links a:hover {
-      text-decoration: underline;
-    }
-
-    .lab-header {
-      background-color: #004080;
-      color: white;
-      padding: 1.5rem;
-      text-align: center;
-      font-size: 1.8rem;
-      font-weight: bold;
-      border-top: 4px solid #002244;
-      border-bottom: 4px solid #002244;
-    }
-
-    .sub-header {
-      text-align: center;
-      font-size: 0.9rem;
-      color: #444;
-      padding: 0.5rem 1rem;
-    }
-
-    .main-container {
-      flex: 1;
-      display: flex;
-      flex-direction: row;
-      padding: 1rem;
-    }
-
-    .left-panel {
-      flex: 3;
-      padding-right: 1rem;
-    }
-
-    .right-panel {
-      flex: 1;
-      border-left: 2px solid #ccc;
-      padding-left: 1rem;
-    }
-
-    .panel {
-      background: white;
-      padding: 1rem;
-      margin-bottom: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-    }
-
-    .panel h2 {
-      color: #003366;
-    }
-
-    .checkbox-group {
-      margin: 0.5rem 0;
-    }
-
+    /* ... (Your existing CSS styles, keep all) ... */
+    /* Add or adjust as needed for new layout */
     .checkbox-group label {
       margin-right: 1rem;
+      display: inline-block;
+      margin-bottom: 0.5rem;
     }
-
+    .status .sensor-status {
+      margin-bottom: 0.3rem;
+    }
     .serial-monitor {
       background: #000;
       color: #0f0;
@@ -100,37 +24,14 @@
       padding: 0.5rem;
       border-radius: 4px;
       margin-top: 0.5rem;
-    }
-
-    .time-selector {
-      margin-bottom: 2rem;
-    }
-
-    .time-selector h3,
-    .status h3 {
-      color: #003366;
-    }
-
-    select {
-      padding: 0.5rem;
-      width: 100%;
-      margin-top: 0.5rem;
-    }
-
-    .status {
-      margin-top: 1rem;
-    }
-
-    .status span {
-      font-weight: bold;
-    }
-
-    .footer {
-      background-color: #003366;
-      height: 60px;
-      margin-top: auto;
+      font-size: 0.95em;
     }
   </style>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
@@ -160,49 +61,294 @@
     <div class="left-panel">
       <div class="panel">
         <h2>Temperature & Humidity Panel</h2>
-        <div class="checkbox-group">
-          <label><input type="checkbox" checked> Sensor 1</label>
-          <label><input type="checkbox" checked> Sensor 2</label>
-          <label><input type="checkbox" checked> Sensor 3</label>
-          <label><input type="checkbox" checked> Sensor 4</label>
-          <label><input type="checkbox" checked> Sensor 5</label>
-          <label><input type="checkbox" checked> Sensor 6</label>
+        <div class="checkbox-group" id="sensor-checkboxes">
+          <!-- JS will populate 6 checkboxes here -->
         </div>
-        <!-- Placeholder for combined graph -->
-        <div style="height:300px; background:#eef; border:1px dashed #888; margin-top:1rem; text-align:center; line-height:300px;">
-          [ Temperature & Humidity Graph Here ]
-        </div>
-        <div class="serial-monitor" id="safety-serial">
-          Serial Monitor: Combined Temperature & Humidity data streaming...
+        <!-- Combined Chart -->
+        <canvas id="combinedChart" height="300"></canvas>
+        <div class="serial-monitor" id="serial-monitor">
+          Serial Monitor: Waiting for data...
         </div>
       </div>
     </div>
 
-    <!-- Right: Time and Status -->
+    <!-- Right: Time Selector and Status -->
     <div class="right-panel">
       <div class="time-selector">
         <h3>Time Range</h3>
-        <select>
-          <option>Past 1 Hour</option>
-          <option>Past 2 Hours</option>
-          <option>Past 6 Hours</option>
-          <option>Past 12 Hours</option>
-          <option>Past 1 Day</option>
-          <option>Past 1 Week</option>
-          <option>Past 1 Month</option>
+        <select id="time-range">
+          <option value="10">Past 10 Minutes</option>
+          <option value="15">Past 15 Minutes</option>
+          <option value="30">Past 30 Minutes</option>
+          <option value="60">Past 1 Hour</option>
+          <option value="120">Past 2 Hours</option>
+          <option value="180">Past 3 Hours</option>
+          <option value="360">Past 6 Hours</option>
+          <option value="720">Past 12 Hours</option>
+          <option value="1440">Past 1 Day</option>
+          <option value="2880">Past 2 Days</option>
+          <option value="10080">Past 1 Week</option>
+          <option value="43200">Past 1 Month</option>
         </select>
       </div>
-
       <div class="status">
         <h3>Status</h3>
-        <p>Data Stream: <span style="color: green;">ONLINE</span></p>
-        <p>Last Updated: <span id="last-updated">19 May 2025, 11:42 AM</span></p>
+        <p>Data Stream: <span id="stream-status" style="color: green;">ONLINE</span></p>
+        <p>Last Updated: <span id="last-updated">-</span></p>
+        <div id="sensor-status-list"></div>
       </div>
     </div>
   </div>
-
-  <!-- Footer -->
   <div class="footer"></div>
 
+  <script>
+    // --- Firebase Config ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyATktR2jpo9ghUY0_MqpZh_KP5jrW-6YZE",
+      authDomain: "ultracoldmatterlablive.firebaseapp.com",
+      databaseURL: "https://ultracoldmatterlablive-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "ultracoldmatterlablive",
+      storageBucket: "ultracoldmatterlablive.appspot.com",
+      messagingSenderId: "75894080963",
+      appId: "1:75894080963:web:cfa41a9bd08d4f567f6976"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // --- Global Variables ---
+    const NUM_SENSORS = 6;
+    const SENSOR_COLORS = [
+      "#d32f2f", "#1976d2", "#388e3c", "#fbc02d", "#7b1fa2", "#0097a7"
+    ];
+    const HUMIDITY_ALPHA = 0.5; // 50% white mixed color for humidity
+
+    // --- HTML Elements ---
+    const ctx = document.getElementById('combinedChart').getContext('2d');
+    const serialMonitor = document.getElementById('serial-monitor');
+    const timeRangeSelect = document.getElementById('time-range');
+    const lastUpdated = document.getElementById('last-updated');
+    const streamStatus = document.getElementById('stream-status');
+    const sensorStatusList = document.getElementById('sensor-status-list');
+    const sensorCheckboxesDiv = document.getElementById('sensor-checkboxes');
+
+    // --- Build Checkboxes ---
+    let sensorVisible = Array(NUM_SENSORS).fill(true);
+    for (let i = 0; i < NUM_SENSORS; i++) {
+      const label = document.createElement('label');
+      label.innerHTML = `<input type="checkbox" checked data-sensor="${i}"> Sensor ${i+1}`;
+      sensorCheckboxesDiv.appendChild(label);
+    }
+    sensorCheckboxesDiv.addEventListener('change', (e) => {
+      if (e.target.tagName === 'INPUT') {
+        const idx = parseInt(e.target.getAttribute('data-sensor'));
+        sensorVisible[idx] = e.target.checked;
+        updateChart();
+      }
+    });
+
+    // --- Chart.js Setup ---
+    let chart;
+    function createChart() {
+      const datasets = [];
+      for (let i = 0; i < NUM_SENSORS; i++) {
+        // Temperature
+        datasets.push({
+          label: `Sensor ${i+1} Temp`,
+          data: [],
+          borderColor: SENSOR_COLORS[i],
+          backgroundColor: SENSOR_COLORS[i],
+          borderWidth: 2,
+          fill: false,
+          hidden: !sensorVisible[i],
+          yAxisID: 'y',
+        });
+        // Humidity
+        datasets.push({
+          label: `Sensor ${i+1} Hum`,
+          data: [],
+          borderColor: hexToRgba(SENSOR_COLORS[i], HUMIDITY_ALPHA),
+          backgroundColor: hexToRgba(SENSOR_COLORS[i], HUMIDITY_ALPHA),
+          borderDash: [8, 4], // Dotted/dashed for humidity
+          borderWidth: 2,
+          fill: false,
+          hidden: !sensorVisible[i],
+          yAxisID: 'y1',
+        });
+      }
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: datasets
+        },
+        options: {
+          responsive: true,
+          interaction: {
+            mode: 'nearest',
+            intersect: false,
+          },
+          plugins: {
+            legend: { display: true }
+          },
+          scales: {
+            y: {
+              type: 'linear',
+              display: true,
+              position: 'left',
+              title: { display: true, text: 'Temperature (°C)' }
+            },
+            y1: {
+              type: 'linear',
+              display: true,
+              position: 'right',
+              title: { display: true, text: 'Humidity (%)' },
+              grid: { drawOnChartArea: false }
+            }
+          }
+        }
+      });
+    }
+
+    // --- Utility: Convert Hex to RGBA ---
+    function hexToRgba(hex, alpha) {
+      let c = hex.replace('#', '');
+      if (c.length === 3) c = c.split('').map(x => x + x).join('');
+      const num = parseInt(c, 16);
+      return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`;
+    }
+
+    // --- Data Handling ---
+    let allSensorData = Array(NUM_SENSORS).fill().map(() => []);
+    let latestSerialLines = [];
+
+    function fetchAndListen() {
+      // Remove previous listeners
+      for (let i = 0; i < NUM_SENSORS; i++) {
+        db.ref(`/sensors/sensor${i+1}`).off();
+      }
+      // Clear data
+      allSensorData = Array(NUM_SENSORS).fill().map(() => []);
+      latestSerialLines = [];
+      // Get current time range in minutes
+      let rangeMins = parseInt(timeRangeSelect.value);
+
+      let now = new Date();
+      let startTime = new Date(now.getTime() - rangeMins * 60000);
+
+      // For each sensor, listen for new data
+      for (let i = 0; i < NUM_SENSORS; i++) {
+        db.ref(`/sensors/sensor${i+1}`).orderByKey().startAt(formatTimestamp(startTime)).on('value', snapshot => {
+          const data = snapshot.val() || {};
+          const arr = [];
+          Object.entries(data).forEach(([ts, v]) => {
+            arr.push({
+              timestamp: ts,
+              temperature: v.temperature,
+              humidity: v.humidity
+            });
+          });
+          arr.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+          allSensorData[i] = arr;
+          updateChart();
+          updateSerialMonitor();
+          updateSensorStatus();
+        }, err => {
+          streamStatus.textContent = "OFFLINE";
+          streamStatus.style.color = "red";
+        });
+      }
+    }
+
+    // --- Format timestamp to match Firebase keys (YYYY-MM-DDTHH:mm:ss) ---
+    function formatTimestamp(date) {
+      return date.toISOString().slice(0,19);
+    }
+
+    // --- Update Chart ---
+    function updateChart() {
+      if (!chart) return;
+      // Collect all unique timestamps in range
+      let allTimestamps = new Set();
+      allSensorData.forEach(sensorArr => {
+        sensorArr.forEach(d => allTimestamps.add(d.timestamp));
+      });
+      let sortedTimestamps = Array.from(allTimestamps).sort();
+      chart.data.labels = sortedTimestamps;
+      // For each sensor, fill temperature and humidity
+      for (let i = 0; i < NUM_SENSORS; i++) {
+        // Find index in chart.datasets
+        let tempData = [];
+        let humData = [];
+        let dataMap = {};
+        allSensorData[i].forEach(d => { dataMap[d.timestamp] = d; });
+        sortedTimestamps.forEach(ts => {
+          if (dataMap[ts]) {
+            tempData.push(dataMap[ts].temperature);
+            humData.push(dataMap[ts].humidity);
+          } else {
+            tempData.push(null);
+            humData.push(null);
+          }
+        });
+        // Temperature
+        chart.data.datasets[i*2].data = tempData;
+        chart.data.datasets[i*2].hidden = !sensorVisible[i];
+        // Humidity
+        chart.data.datasets[i*2+1].data = humData;
+        chart.data.datasets[i*2+1].hidden = !sensorVisible[i];
+      }
+      chart.update('none');
+      // Update last updated time
+      let lastTs = sortedTimestamps[sortedTimestamps.length-1];
+      lastUpdated.textContent = lastTs ? new Date(lastTs).toLocaleString() : "-";
+      streamStatus.textContent = "ONLINE";
+      streamStatus.style.color = "green";
+    }
+
+    // --- Update Serial Monitor ---
+    function updateSerialMonitor() {
+      // Show last 10 entries (most recent at bottom)
+      let lines = [];
+      for (let i = 0; i < NUM_SENSORS; i++) {
+        let arr = allSensorData[i];
+        if (arr.length > 0) {
+          let d = arr[arr.length-1];
+          lines.push(`Sensor ${i+1} -> Temp: ${d.temperature} °C, Hum: ${d.humidity} % at ${d.timestamp}`);
+        }
+      }
+      latestSerialLines = lines;
+      serialMonitor.textContent = lines.length ? lines.join('\n') : "Serial Monitor: Waiting for data...";
+    }
+
+    // --- Update Sensor Status ---
+    function updateSensorStatus() {
+      let html = '';
+      for (let i = 0; i < NUM_SENSORS; i++) {
+        let arr = allSensorData[i];
+        let status = "OFF";
+        let color = "red";
+        if (arr.length > 0) {
+          // If last data within 2x data interval (20s), consider ON
+          let last = arr[arr.length-1];
+          let lastTime = new Date(last.timestamp);
+          let now = new Date();
+          if ((now - lastTime) < 20000) {
+            status = "ON";
+            color = "green";
+          }
+        }
+        html += `<div class="sensor-status">Sensor ${i+1}: <span style="color:${color};font-weight:bold">${status}</span></div>`;
+      }
+      sensorStatusList.innerHTML = html;
+    }
+
+    // --- Time Range Change Handler ---
+    timeRangeSelect.addEventListener('change', fetchAndListen);
+
+    // --- Initial Load ---
+    createChart();
+    fetchAndListen();
+
+  </script>
 </body>
 </html>
