@@ -74,27 +74,37 @@
       font-size: 1rem;
       margin-left: 0.5rem;
     }
-    .status-bar {
+    .setup-status-indicator {
       display: flex;
-      justify-content: space-between;
+      justify-content: center;
       align-items: center;
-      background: #fff;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 0.7rem 1.5rem;
-      margin-bottom: 1.2rem;
-      font-size: 1.07rem;
-      gap: 1.5rem;
-      flex-wrap: wrap;
+      font-size: 1.4rem;
+      font-weight: bold;
+      margin-bottom: 1.1rem;
+      gap: 1.3rem;
     }
-    .status-bar .status-list {
+    .setup-on {
+      color: #16c60c;
+      font-size: 1.4em;
+    }
+    .setup-off {
+      color: #e81123;
+      font-size: 1.4em;
+    }
+    .last-updated {
+      color: #003366;
+      font-size: 1.05rem;
+      margin-left: 2.3rem;
+    }
+    .sensor-status-list {
       display: flex;
       gap: 1.2rem;
       flex-wrap: wrap;
-      margin: 0;
+      margin: 0.5rem 0 1.2rem 0;
       padding: 0;
+      font-size: 1.05rem;
     }
-    .status-bar .status-list li {
+    .sensor-status-list li {
       list-style: none;
     }
     .status-online {
@@ -161,7 +171,6 @@
     @media (max-width: 900px) {
       .main-container { padding: 0.5rem; }
       .panel { padding: 1rem 0.5rem 1rem 0.5rem; }
-      .status-bar { flex-direction: column; align-items: flex-start; }
     }
   </style>
 </head>
@@ -207,23 +216,19 @@
       </div>
     </div>
 
-    <!-- Status Bar -->
-    <div class="status-bar">
-      <div>
-        Setup: <span id="stream-status" class="status-online">🟢 ON</span>
-      </div>
-      <div>
-        Last Updated: <span id="last-updated">--</span>
-      </div>
-      <ul class="status-list" id="sensor-status-list">
-        <li>Sensor 1: <span class="status-offline">OFFLINE</span></li>
-        <li>Sensor 2: <span class="status-offline">OFFLINE</span></li>
-        <li>Sensor 3: <span class="status-offline">OFFLINE</span></li>
-        <li>Sensor 4: <span class="status-offline">OFFLINE</span></li>
-        <li>Sensor 5: <span class="status-offline">OFFLINE</span></li>
-        <li>Sensor 6: <span class="status-offline">OFFLINE</span></li>
-      </ul>
+    <!-- Setup Status Indicator -->
+    <div class="setup-status-indicator">
+      Setup: <span id="setup-status" class="setup-on">🟢 ON</span>
+      <span class="last-updated">Last Updated: <span id="last-updated">--</span></span>
     </div>
+    <ul class="sensor-status-list" id="sensor-status-list">
+      <li>Sensor 1: <span class="status-offline">OFFLINE</span></li>
+      <li>Sensor 2: <span class="status-offline">OFFLINE</span></li>
+      <li>Sensor 3: <span class="status-offline">OFFLINE</span></li>
+      <li>Sensor 4: <span class="status-offline">OFFLINE</span></li>
+      <li>Sensor 5: <span class="status-offline">OFFLINE</span></li>
+      <li>Sensor 6: <span class="status-offline">OFFLINE</span></li>
+    </ul>
 
     <div class="left-panel">
 
@@ -504,17 +509,17 @@ function updateHumSerial() {
     .map(e => `<div class="serial-entry">${e}</div>`).join('');
 }
 
-// --- Status Bar ---
+// --- Setup Status and Sensor Status ---
 function updateStatusPanel() {
   // Global status: ON if any sensor is online
   const allOnline = sensorIds.some(sid => sensorOnline[sid]);
-  const streamStatusElem = document.getElementById('stream-status');
+  const setupStatusElem = document.getElementById('setup-status');
   if (allOnline) {
-    streamStatusElem.textContent = "🟢 ON";
-    streamStatusElem.className = "status-online";
+    setupStatusElem.textContent = "🟢 ON";
+    setupStatusElem.className = "setup-on";
   } else {
-    streamStatusElem.textContent = "🔴 OFF";
-    streamStatusElem.className = "status-offline";
+    setupStatusElem.textContent = "🔴 OFF";
+    setupStatusElem.className = "setup-off";
   }
   // Last update
   if (lastGlobalUpdate) {
