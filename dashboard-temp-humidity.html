@@ -74,45 +74,6 @@
       font-size: 1rem;
       margin-left: 0.5rem;
     }
-    .setup-status-indicator {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 1.4rem;
-      font-weight: bold;
-      margin-bottom: 1.1rem;
-      gap: 1.3rem;
-    }
-    .setup-on {
-      color: #16c60c;
-      font-size: 1.4em;
-    }
-    .setup-off {
-      color: #e81123;
-      font-size: 1.4em;
-    }
-    .last-updated {
-      color: #003366;
-      font-size: 1.05rem;
-      margin-left: 2.3rem;
-    }
-    .sensor-status-list {
-      display: flex;
-      gap: 1.2rem;
-      flex-wrap: wrap;
-      margin: 0.5rem 0 1.2rem 0;
-      padding: 0;
-      font-size: 1.05rem;
-    }
-    .sensor-status-list li {
-      list-style: none;
-    }
-    .status-online {
-      color: green;
-    }
-    .status-offline {
-      color: red;
-    }
     .left-panel {
       width: 100%;
       max-width: 1400px;
@@ -216,20 +177,6 @@
       </div>
     </div>
 
-    <!-- Setup Status Indicator -->
-    <div class="setup-status-indicator">
-      Setup: <span id="setup-status" class="setup-on">🟢 ON</span>
-      <span class="last-updated">Last Updated: <span id="last-updated">--</span></span>
-    </div>
-    <ul class="sensor-status-list" id="sensor-status-list">
-      <li>Sensor 1: <span class="status-offline">OFFLINE</span></li>
-      <li>Sensor 2: <span class="status-offline">OFFLINE</span></li>
-      <li>Sensor 3: <span class="status-offline">OFFLINE</span></li>
-      <li>Sensor 4: <span class="status-offline">OFFLINE</span></li>
-      <li>Sensor 5: <span class="status-offline">OFFLINE</span></li>
-      <li>Sensor 6: <span class="status-offline">OFFLINE</span></li>
-    </ul>
-
     <div class="left-panel">
 
       <!-- Temperature Panel -->
@@ -299,9 +246,6 @@ const sensorColors = [
 
 // --- Data Structures ---
 let allData = {}; // { sensorId: { timestamp: {temperature, humidity} } }
-let lastTimestamps = {}; // { sensorId: lastTimestamp }
-let sensorOnline = {}; // { sensorId: true/false }
-let lastGlobalUpdate = null;
 
 // --- Chart.js Setup ---
 const tempCtx = document.getElementById('tempChart').getContext('2d');
@@ -509,64 +453,19 @@ function updateHumSerial() {
     .map(e => `<div class="serial-entry">${e}</div>`).join('');
 }
 
-// --- Setup Status and Sensor Status ---
-function updateStatusPanel() {
-  // Global status: ON if any sensor is online
-  const allOnline = sensorIds.some(sid => sensorOnline[sid]);
-  const setupStatusElem = document.getElementById('setup-status');
-  if (allOnline) {
-    setupStatusElem.textContent = "🟢 ON";
-    setupStatusElem.className = "setup-on";
-  } else {
-    setupStatusElem.textContent = "🔴 OFF";
-    setupStatusElem.className = "setup-off";
-  }
-  // Last update
-  if (lastGlobalUpdate) {
-    const dt = new Date(lastGlobalUpdate);
-    document.getElementById('last-updated').textContent = dt.toLocaleString();
-  } else {
-    document.getElementById('last-updated').textContent = "--";
-  }
-  // Sensor status
-  document.getElementById('sensor-status-list').innerHTML = sensorIds.map((sid, idx) => {
-    const online = sensorOnline[sid];
-    const lastTs = lastTimestamps[sid];
-    return `<li>Sensor ${idx+1}: <span class="${online ? 'status-online' : 'status-offline'}">${online ? 'ONLINE' : 'OFFLINE'}</span>${lastTs ? ` <span style="font-size:0.85em;color:#666;">(${lastTs})</span>` : ''}</li>`;
-  }).join('');
-}
-
 // --- Listen to Firebase for all sensors ---
 sensorIds.forEach(sensorId => {
   allData[sensorId] = {};
-  sensorOnline[sensorId] = false;
-  lastTimestamps[sensorId] = null;
   const sensorRef = db.ref('sensors/' + sensorId);
   sensorRef.limitToLast(1000).on('value', snapshot => {
     const data = snapshot.val();
     allData[sensorId] = data || {};
-    // Online status: if latest entry is <3min old, it's online
-    const timestamps = data ? Object.keys(data) : [];
-    if (timestamps.length > 0) {
-      const latestTs = timestamps.sort().reverse()[0];
-      lastTimestamps[sensorId] = latestTs;
-      const dt = new Date(latestTs);
-      const now = new Date();
-      const diffMin = (now - dt) / 60000;
-      sensorOnline[sensorId] = diffMin < 3;
-      if (!lastGlobalUpdate || dt > new Date(lastGlobalUpdate)) lastGlobalUpdate = latestTs;
-    } else {
-      sensorOnline[sensorId] = false;
-      lastTimestamps[sensorId] = null;
-    }
-    // Update charts and monitors
     if (tempChart) tempChart.destroy();
     tempChart = buildChart(tempCtx, prepareTempChartData(), true);
     if (humChart) humChart.destroy();
     humChart = buildChart(humCtx, prepareHumChartData(), false);
     updateTempSerial();
     updateHumSerial();
-    updateStatusPanel();
   });
 });
 
@@ -593,9 +492,6 @@ document.getElementById('resetZoomBtn').addEventListener('click', () => {
   if (tempChart) tempChart.resetZoom();
   if (humChart) humChart.resetZoom();
 });
-
-// --- Initial UI Update ---
-updateStatusPanel();
 </script>
 </body>
 </html>
