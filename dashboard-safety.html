@@ -2,166 +2,121 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>UltraCold Matter Lab - Live Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Dashboard - Safety Systems</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
   <style>
-    body { font-family: Arial; margin: 20px; }
-    .flex { display: flex; gap: 20px; }
-    .left { flex: 3; }
-    .right { flex: 1; border-left: 1px solid #ccc; padding-left: 20px; }
-    canvas { max-height: 400px; }
-    .checkbox-group label { margin-right: 10px; }
-    .serial { background: #f5f5f5; padding: 10px; height: 150px; overflow-y: scroll; font-size: 14px; }
-    .status { margin-top: 10px; }
-    .status div { margin: 5px 0; }
-    .online { color: green; }
-    .offline { color: gray; }
-    .timestamp { font-size: 12px; color: #555; }
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
+    h2 { text-align: center; }
+    #chartContainer { width: 90%; margin: auto; }
+    #serialMonitor { width: 90%; margin: 20px auto; background: #fff; border: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: scroll; }
+    .log-entry { margin-bottom: 5px; }
   </style>
 </head>
 <body>
-  <h2>UltraCold Matter Lab – Live Safety Dashboard</h2>
-  <div class="flex">
-    <div class="left">
-      <div class="checkbox-group">
-        Show:
-        <label><input type="checkbox" value="1" checked> Sensor 1</label>
-        <label><input type="checkbox" value="2" checked> Sensor 2</label>
-        <label><input type="checkbox" value="3" checked> Sensor 3</label>
-        <label><input type="checkbox" value="4" checked> Sensor 4</label>
-        <label><input type="checkbox" value="5" checked> Sensor 5</label>
-        <label><input type="checkbox" value="6" checked> Sensor 6</label>
-        &nbsp;&nbsp;Time Window:
-        <select id="timeWindow">
-          <option value="5">Last 5 mins</option>
-          <option value="15">Last 15 mins</option>
-          <option value="30">Last 30 mins</option>
-          <option value="60">Last 1 hour</option>
-        </select>
-      </div>
-      <canvas id="liveChart"></canvas>
-      <h4>Serial Monitor (latest 10 entries)</h4>
-      <div class="serial" id="serialMonitor"></div>
-    </div>
-    <div class="right">
-      <h4>Sensor Status</h4>
-      <div class="status" id="statusBoard"></div>
-    </div>
+  <h2>Live Temperature and Humidity Dashboard</h2>
+  <div id="chartContainer">
+    <canvas id="sensorChart"></canvas>
   </div>
+  <h3 style="text-align:center">Serial Monitor</h3>
+  <div id="serialMonitor"></div>
 
   <script>
+    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyATktR2jpo9ghUY0_MqpZh_KP5jrW-6YZE",
       authDomain: "ultracoldmatterlablive.firebaseapp.com",
-      databaseURL: "https://ultracoldmatterlablive-default-rtdb.asia-southeast1.firebasedatabase.app/",
+      databaseURL: "https://ultracoldmatterlablive-default-rtdb.asia-southeast1.firebasedatabase.app",
       projectId: "ultracoldmatterlablive",
       storageBucket: "ultracoldmatterlablive.appspot.com",
-      messagingSenderId: "973389235899",
-      appId: "1:973389235899:web:example"
+      messagingSenderId: "75894080963",
+      appId: "1:75894080963:web:cfa41a9bd08d4f567f6976"
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const ctx = document.getElementById("liveChart").getContext("2d");
-    const sensorColors = [
-      "red", "blue", "green", "orange", "purple", "teal"
-    ];
-
+    // Chart setup
+    const ctx = document.getElementById('sensorChart').getContext('2d');
     const chart = new Chart(ctx, {
-      type: "line",
-      data: { datasets: [] },
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: []
+      },
       options: {
         responsive: true,
         scales: {
-          x: { type: "time", time: { tooltipFormat: 'HH:mm:ss' }, title: { display: true, text: 'Time' } },
-          y: { title: { display: true, text: 'Value (°C / %)' } }
-        },
-        plugins: {
-          legend: { position: 'bottom' },
+          x: { title: { display: true, text: 'Time' } },
+          y: { title: { display: true, text: 'Value' } }
         }
       }
     });
 
-    const statusBoard = document.getElementById("statusBoard");
-    const serialMonitor = document.getElementById("serialMonitor");
+    const serialMonitor = document.getElementById('serialMonitor');
+    const maxLogEntries = 20;
+    const sensorColors = ['red', 'blue', 'green', 'orange', 'purple', 'brown'];
 
-    const getSensorData = async () => {
-      const timeWindowMin = parseInt(document.getElementById("timeWindow").value);
-      const minTime = new Date(Date.now() - timeWindowMin * 60 * 1000);
-      const selectedSensors = [...document.querySelectorAll(".checkbox-group input:checked")].map(cb => parseInt(cb.value));
+    // Initialize datasets
+    for (let i = 1; i <= 6; i++) {
+      chart.data.datasets.push({
+        label: `Sensor ${i} Temp`,
+        borderColor: sensorColors[i - 1],
+        backgroundColor: sensorColors[i - 1],
+        data: [],
+        tension: 0.4
+      });
+      chart.data.datasets.push({
+        label: `Sensor ${i} Hum`,
+        borderColor: sensorColors[i - 1],
+        backgroundColor: sensorColors[i - 1],
+        data: [],
+        borderDash: [5, 5],
+        tension: 0.4
+      });
+    }
 
-      chart.data.datasets = [];
-      serialMonitor.innerHTML = "";
-      statusBoard.innerHTML = "";
-
-      for (let i = 1; i <= 6; i++) {
-        const snapshot = await db.ref(`sensors/sensor${i}`).once("value");
-        const readings = snapshot.val() || {};
-        const entries = [];
-
-        for (const ts in readings) {
-          let tsISO = ts.endsWith('Z') ? ts : ts + "Z";
-          const time = new Date(tsISO);
-          if (isNaN(time) || time < minTime) continue;
-          const temp = readings[ts].temperature ?? null;
-          const hum = readings[ts].humidity ?? null;
-          if (temp == null || hum == null) continue;
-          entries.push({ time, temp, hum, ts });
-        }
-
-        entries.sort((a, b) => a.time - b.time);
-        const last = entries[entries.length - 1];
-        const sensorLabel = `Sensor ${i}`;
-
-        // Status & timestamp
-        let status = "N/A", cls = "offline";
-        if (last && (Date.now() - last.time.getTime()) < 120000) {
-          status = "ONLINE"; cls = "online";
-        } else if (last) {
-          status = "OFF"; cls = "offline";
-        }
-
-        statusBoard.innerHTML += `<div><strong>${sensorLabel}:</strong> <span class="${cls}">${status}</span><br>
-          <span class="timestamp">${last ? last.ts : '-'}</span></div>`;
-
-        // Serial Monitor
-        if (last) {
-          serialMonitor.innerHTML = `<div>${sensorLabel} | Temp: ${last.temp}°C, Hum: ${last.hum}%, Time: ${last.ts}</div>` + serialMonitor.innerHTML;
-        }
-
-        // Chart data
-        if (selectedSensors.includes(i)) {
-          chart.data.datasets.push(
-            {
-              label: `${sensorLabel} Temp`,
-              data: entries.map(e => ({ x: e.time, y: e.temp })),
-              borderColor: sensorColors[i - 1],
-              borderWidth: 2,
-              fill: false
-            },
-            {
-              label: `${sensorLabel} Hum`,
-              data: entries.map(e => ({ x: e.time, y: e.hum })),
-              borderColor: sensorColors[i - 1],
-              borderDash: [5, 5],
-              backgroundColor: sensorColors[i - 1] + "55",
-              fill: false
-            }
-          );
-        }
+    function updateChartAndSerial(sensorIndex, temp, hum, timestamp) {
+      const timeLabel = timestamp.split(', ')[1]; // Use HH:MM:SS from local time string
+      if (!chart.data.labels.includes(timeLabel)) {
+        chart.data.labels.push(timeLabel);
+        if (chart.data.labels.length > 50) chart.data.labels.shift();
       }
+
+      const tIndex = (sensorIndex - 1) * 2;
+      const hIndex = tIndex + 1;
+
+      chart.data.datasets[tIndex].data.push(temp);
+      chart.data.datasets[hIndex].data.push(hum);
+
+      if (chart.data.datasets[tIndex].data.length > 50) chart.data.datasets[tIndex].data.shift();
+      if (chart.data.datasets[hIndex].data.length > 50) chart.data.datasets[hIndex].data.shift();
+
       chart.update();
-    };
 
-    document.querySelectorAll(".checkbox-group input, #timeWindow").forEach(el => {
-      el.addEventListener("change", getSensorData);
-    });
+      const logLine = `<div class="log-entry">Sensor ${sensorIndex} | Temp: ${temp}°C, Hum: ${hum}%, Time: ${timestamp}</div>`;
+      serialMonitor.innerHTML = logLine + serialMonitor.innerHTML;
+      const entries = serialMonitor.querySelectorAll('.log-entry');
+      if (entries.length > maxLogEntries) entries[entries.length - 1].remove();
+    }
 
-    setInterval(getSensorData, 10000); // Refresh every 10 seconds
-    getSensorData();
+    for (let i = 1; i <= 6; i++) {
+      const sensorRef = db.ref(`sensors/sensor${i}`);
+      sensorRef.on('value', snapshot => {
+        const data = snapshot.val();
+        if (data) {
+          const temp = parseFloat(data.temperature);
+          const hum = parseFloat(data.humidity);
+
+          // FIXED timestamp line:
+          const rawTimestamp = data.timestamp;
+          const safeTimestamp = new Date(rawTimestamp.endsWith('Z') ? rawTimestamp : rawTimestamp + 'Z').toLocaleString();
+
+          updateChartAndSerial(i, temp, hum, safeTimestamp);
+        }
+      });
+    }
   </script>
 </body>
 </html>
