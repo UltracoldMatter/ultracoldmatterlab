@@ -555,6 +555,9 @@ sensorIds.forEach(sensorId => {
   });
 });
 
+// --- Periodic Status Check to Update OFFLINE Status ---
+setInterval(updateStatusPanel, 10000); // Check every 10 seconds
+
 // --- UI Events ---
 Array.from(document.querySelectorAll('#temp-checkboxes input[type=checkbox],#hum-checkboxes input[type=checkbox]')).forEach(cb => {
   cb.addEventListener('change', () => {
