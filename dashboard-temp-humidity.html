@@ -233,15 +233,15 @@
       </div>
       <div class="status">
         <h3>Status</h3>
-        <p>Data Stream: <span id="stream-status" class="status-online">ONLINE</span></p>
+        <p>Data Stream: <span id="stream-status" class="status-offline">🔴 Waiting...</span></p>
         <p>Last Updated: <span id="last-updated">--</span></p>
         <ul class="status-list" id="sensor-status-list">
-          <li>Sensor 1: <span class="status-offline">OFFLINE</span></li>
-          <li>Sensor 2: <span class="status-offline">OFFLINE</span></li>
-          <li>Sensor 3: <span class="status-offline">OFFLINE</span></li>
-          <li>Sensor 4: <span class="status-offline">OFFLINE</span></li>
-          <li>Sensor 5: <span class="status-offline">OFFLINE</span></li>
-          <li>Sensor 6: <span class="status-offline">OFFLINE</span></li>
+          <li>Sensor 1: <span class="status-offline">🔴 Waiting...</span></li>
+          <li>Sensor 2: <span class="status-offline">🔴 Waiting...</span></li>
+          <li>Sensor 3: <span class="status-offline">🔴 Waiting...</span></li>
+          <li>Sensor 4: <span class="status-offline">🔴 Waiting...</span></li>
+          <li>Sensor 5: <span class="status-offline">🔴 Waiting...</span></li>
+          <li>Sensor 6: <span class="status-offline">🔴 Waiting...</span></li>
         </ul>
       </div>
     </div>
@@ -285,72 +285,6 @@ let lastGlobalUpdate = null;
 const tempCtx = document.getElementById('tempChart').getContext('2d');
 const humCtx  = document.getElementById('humChart').getContext('2d');
 let tempChart, humChart;
-
-function buildChart(ctx, datasets, isTemp) {
-  return new Chart(ctx, {
-    type: 'line',
-    data: { datasets: datasets },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: true,
-          position: 'top',
-          labels: { color: "#003366", font: { size: 15 } }
-        },
-        zoom: {
-          zoom: {
-            wheel: { enabled: true },
-            pinch: { enabled: true },
-            mode: 'x',
-          },
-          pan: {
-            enabled: true,
-            mode: 'x',
-          },
-          limits: {
-            x: { minRange: 60000 }
-          }
-        },
-        tooltip: {
-          enabled: true,
-          mode: 'nearest',
-          intersect: false,
-          titleFont: { size: 16 },
-          bodyFont: { size: 15 }
-        }
-      },
-      interaction: {
-        mode: 'nearest',
-        intersect: false
-      },
-      scales: {
-        x: {
-          type: 'time',
-          time: {
-            unit: 'minute',
-            tooltipFormat: 'HH:mm:ss',
-            displayFormats: { minute: 'HH:mm:ss', hour: 'HH:mm' }
-          },
-          ticks: { color: "#003366", font: { size: 13 }, autoSkip: true, maxRotation: 0 },
-          title: { display: true, text: 'Time', color: "#003366", font: { size: 15 } },
-          grid: { color: "#e0e0e0" }
-        },
-        y: {
-          ticks: { color: "#003366", font: { size: 13 } },
-          beginAtZero: false,
-          title: { display: true, text: isTemp ? 'Temperature (°C)' : 'Humidity (%)', color: "#003366", font: { size: 15 } },
-          grid: { color: "#e0e0e0" }
-        }
-      },
-      animation: false,
-      elements: {
-        line: { borderWidth: 2, borderDash: isTemp ? [] : [6,6] }
-      }
-    }
-  });
-}
 
 // --- Helper: Color Mixer for Humidity Line ---
 function mixWhite(color, percent) {
@@ -486,64 +420,34 @@ function updateHumSerial() {
     .map(e => `<div class="serial-entry">${e}</div>`).join('');
 }
 
-// --- Status Panel ---
-function updateStatusPanel() {
-  // Per-sensor online status: if latest entry is <3min old, it's online
-  const now = new Date();
-  let anyOnline = false;
-  sensorIds.forEach(sid => {
-    const lastTs = lastTimestamps[sid];
-    if (lastTs) {
-      const dt = new Date(lastTs);
-      const diffMin = (now - dt) / 60000;
-      sensorOnline[sid] = diffMin < 3;
-      if (sensorOnline[sid]) anyOnline = true;
-    } else {
-      sensorOnline[sid] = false;
-    }
+// --- Live Status Panel (using "live update" logic) ---
+function updateStatusPanelLive(sensorId) {
+  // Set Data Stream to Live and update last updated time
+  document.getElementById('stream-status').textContent = "🟢 Live";
+  document.getElementById('stream-status').className = "status-online";
+  document.getElementById('last-updated').textContent = new Date().toLocaleString();
+
+  // Set all sensors to Waiting by default
+  let statusList = sensorIds.map((sid, idx) => {
+    return `<li>Sensor ${idx+1}: <span class="status-offline">🔴 Waiting...</span></li>`;
   });
 
-  // Global data stream status: ONLINE if any sensor is online
-  document.getElementById('stream-status').textContent = anyOnline ? "ONLINE" : "OFFLINE";
-  document.getElementById('stream-status').className = anyOnline ? "status-online" : "status-offline";
-
-  // Last update
-  if (lastGlobalUpdate) {
-    const dt = new Date(lastGlobalUpdate);
-    document.getElementById('last-updated').textContent = dt.toLocaleString();
-  } else {
-    document.getElementById('last-updated').textContent = "--";
+  // Set the updated sensor to Live
+  if (sensorId) {
+    const idx = sensorIds.indexOf(sensorId);
+    statusList[idx] = `<li>Sensor ${idx+1}: <span class="status-online">🟢 Live</span></li>`;
   }
 
-  // Sensor status
-  document.getElementById('sensor-status-list').innerHTML = sensorIds.map((sid, idx) => {
-    const online = sensorOnline[sid];
-    const lastTs = lastTimestamps[sid];
-    return `<li>Sensor ${idx+1}: <span class="${online ? 'status-online' : 'status-offline'}">${online ? 'ONLINE' : 'OFFLINE'}</span>${lastTs ? ` <span style="font-size:0.85em;color:#666;">(${lastTs})</span>` : ''}</li>`;
-  }).join('');
+  document.getElementById('sensor-status-list').innerHTML = statusList.join('');
 }
 
-// --- Listen to Firebase for all sensors ---
+// --- Listen to Firebase for all sensors (live update logic) ---
 sensorIds.forEach(sensorId => {
   allData[sensorId] = {};
-  sensorOnline[sensorId] = false;
-  lastTimestamps[sensorId] = null;
   const sensorRef = db.ref('sensors/' + sensorId);
   sensorRef.limitToLast(1000).on('value', snapshot => {
     const data = snapshot.val();
     allData[sensorId] = data || {};
-    // Get latest timestamp for this sensor
-    const timestamps = data ? Object.keys(data) : [];
-    if (timestamps.length > 0) {
-      const latestTs = timestamps.sort().reverse()[0];
-      lastTimestamps[sensorId] = latestTs;
-      // Update global last update
-      if (!lastGlobalUpdate || new Date(latestTs) > new Date(lastGlobalUpdate)) {
-        lastGlobalUpdate = latestTs;
-      }
-    } else {
-      lastTimestamps[sensorId] = null;
-    }
     // Update charts and monitors
     if (tempChart) tempChart.destroy();
     tempChart = buildChart(tempCtx, prepareTempChartData(), true);
@@ -551,12 +455,76 @@ sensorIds.forEach(sensorId => {
     humChart = buildChart(humCtx, prepareHumChartData(), false);
     updateTempSerial();
     updateHumSerial();
-    updateStatusPanel();
+    updateStatusPanelLive(sensorId);
   });
 });
 
-// --- Periodic Status Check to Update OFFLINE Status ---
-setInterval(updateStatusPanel, 10000); // Check every 10 seconds
+// --- Chart.js build function ---
+function buildChart(ctx, datasets, isTemp) {
+  return new Chart(ctx, {
+    type: 'line',
+    data: { datasets: datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: { color: "#003366", font: { size: 15 } }
+        },
+        zoom: {
+          zoom: {
+            wheel: { enabled: true },
+            pinch: { enabled: true },
+            mode: 'x',
+          },
+          pan: {
+            enabled: true,
+            mode: 'x',
+          },
+          limits: {
+            x: { minRange: 60000 }
+          }
+        },
+        tooltip: {
+          enabled: true,
+          mode: 'nearest',
+          intersect: false,
+          titleFont: { size: 16 },
+          bodyFont: { size: 15 }
+        }
+      },
+      interaction: {
+        mode: 'nearest',
+        intersect: false
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: {
+            unit: 'minute',
+            tooltipFormat: 'HH:mm:ss',
+            displayFormats: { minute: 'HH:mm:ss', hour: 'HH:mm' }
+          },
+          ticks: { color: "#003366", font: { size: 13 }, autoSkip: true, maxRotation: 0 },
+          title: { display: true, text: 'Time', color: "#003366", font: { size: 15 } },
+          grid: { color: "#e0e0e0" }
+        },
+        y: {
+          ticks: { color: "#003366", font: { size: 13 } },
+          beginAtZero: false,
+          title: { display: true, text: isTemp ? 'Temperature (°C)' : 'Humidity (%)', color: "#003366", font: { size: 15 } },
+          grid: { color: "#e0e0e0" }
+        }
+      },
+      animation: false,
+      elements: {
+        line: { borderWidth: 2, borderDash: isTemp ? [] : [6,6] }
+      }
+    }
+  });
+}
 
 // --- UI Events ---
 Array.from(document.querySelectorAll('#temp-checkboxes input[type=checkbox],#hum-checkboxes input[type=checkbox]')).forEach(cb => {
@@ -581,9 +549,6 @@ document.getElementById('resetZoomBtn').addEventListener('click', () => {
   if (tempChart) tempChart.resetZoom();
   if (humChart) humChart.resetZoom();
 });
-
-// --- Initial UI Update ---
-updateStatusPanel();
 </script>
 </body>
 </html>
