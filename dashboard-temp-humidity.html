@@ -1,107 +1,112 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Temperature & Humidity Graph</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <title>Temperature & Humidity Line Chart</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body { background: #181818; color: #eee; }
-    #myChart { background: #232323; border-radius: 12px; }
+    body { 
+      background: #222; 
+      color: #eee; 
+      font-family: sans-serif; 
+      margin: 0; 
+      padding: 2em;
+    }
+    .chart-container {
+      width: 100%;
+      max-width: 700px;
+      margin: auto;
+      background: #333;
+      padding: 2em;
+      border-radius: 1em;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.6);
+    }
+    canvas {
+      background: #222;
+      border-radius: 1em;
+    }
   </style>
 </head>
 <body>
-  <canvas id="myChart" width="900" height="400"></canvas>
+  <div class="chart-container">
+    <canvas id="myChart"></canvas>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
-    // Utility to mix white into a color (simple for demonstration)
-    function mixWhite(rgb, alpha) {
-      // rgb: "rgba(r,g,b,1)"
-      return rgb.replace(/rgba\(([^)]+),1\)/, (m, vals) => {
-        const [r, g, b] = vals.split(',').map(Number);
-        // Mix with white
-        const nr = Math.round(r + (255 - r) * alpha);
-        const ng = Math.round(g + (255 - g) * alpha);
-        const nb = Math.round(b + (255 - b) * alpha);
-        return `rgba(${nr},${ng},${nb},1)`;
-      });
+    // Utility: Mix a color with white (50%)
+    function mixWhite(color, alpha) {
+      // color must be in rgba(r,g,b,1) format
+      return color.replace(/rgba\(([^)]+),1\)/, `rgba($1,${alpha})`);
     }
 
-    // Example data
-    const labels = [
-      "2025-05-28 09:00", "2025-05-28 10:00", "2025-05-28 11:00", "2025-05-28 12:00"
-    ];
-    const temperatureData = [22.3, 23.1, 24.0, 25.2];
-    const humidityData = [48, 50, 47, 49];
+    // Example data (replace with your own)
+    const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+    const tempData = [22, 23, 21, 24, 22, 23];
+    const humData = [60, 62, 58, 65, 60, 61];
 
-    // Color setup
-    const tempColor = "rgba(255,99,132,1)"; // Example: red
-    const humColor = "rgba(54,162,235,1)"; // Example: blue
+    // Your chosen base color for humidity
+    const baseHumColor = 'rgba(54, 162, 235, 1)';
+    const humMixedColor = mixWhite(baseHumColor, 0.5);
 
     const ctx = document.getElementById('myChart').getContext('2d');
-    const chart = new Chart(ctx, {
+    const myChart = new Chart(ctx, {
       type: 'line',
       data: {
         labels: labels,
         datasets: [
           {
-            label: 'Temperature (°C)',
-            data: temperatureData,
-            borderColor: tempColor,
-            backgroundColor: tempColor.replace('1)', '0.10)'), // subtle fill
+            label: 'Temperature',
+            data: tempData,
+            borderColor: 'rgba(255, 99, 132, 1)',
             borderWidth: 2,
             borderDash: [],
             fill: false,
             tension: 0.2,
-            pointRadius: 0, // Hide points by default
-            pointHoverRadius: 6, // Show dot on hover
-            pointHoverBackgroundColor: tempColor,
-            pointHoverBorderColor: "#fff",
-            order: 1
+            pointRadius: 0,
+            pointHoverRadius: 6,
+            order: 1,
           },
           {
-            label: 'Humidity (%)',
-            data: humidityData,
-            borderColor: mixWhite(humColor, 0.5), // 50% white-mixed color
-            backgroundColor: 'rgba(255,255,255,0.05)',
+            label: 'Humidity',
+            data: humData,
+            borderColor: humMixedColor,
             borderWidth: 2,
             borderDash: [6, 6], // Dotted line
             fill: false,
             tension: 0.2,
             pointRadius: 0,
             pointHoverRadius: 6,
-            pointHoverBackgroundColor: mixWhite(humColor, 0.5),
-            pointHoverBorderColor: "#fff",
-            order: 2
+            order: 1,
           }
         ]
       },
       options: {
         responsive: true,
         interaction: {
-          mode: 'index',    // or 'nearest'
-          intersect: false  // Show tooltip anywhere along the x-axis
+          mode: 'index',    // Show tooltip for all datasets at hovered x
+          intersect: false  // Trigger tooltip anywhere along x
         },
         plugins: {
           tooltip: {
-            enabled: true,
-            mode: 'index',
-            intersect: false
+            enabled: true
           },
           legend: {
+            display: true,
             labels: {
-              color: "#fff"
+              color: '#fff'
             }
           }
         },
         scales: {
           x: {
-            type: 'category',
-            ticks: { color: "#fff" },
-            grid: { color: "rgba(255,255,255,0.05)" }
+            display: true,
+            ticks: { color: '#fff' },
+            grid: { color: 'rgba(255,255,255,0.05)' }
           },
           y: {
-            beginAtZero: true,
-            ticks: { color: "#fff" },
-            grid: { color: "rgba(255,255,255,0.08)" }
+            display: true,
+            ticks: { color: '#fff' },
+            grid: { color: 'rgba(255,255,255,0.08)' }
           }
         }
       }
