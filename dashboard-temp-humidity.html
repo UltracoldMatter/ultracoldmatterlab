@@ -488,10 +488,25 @@ function updateHumSerial() {
 
 // --- Status Panel ---
 function updateStatusPanel() {
-  // Global status: ONLINE if any sensor is online
-  const allOnline = sensorIds.some(sid => sensorOnline[sid]);
-  document.getElementById('stream-status').textContent = allOnline ? "ONLINE" : "OFFLINE";
-  document.getElementById('stream-status').className = allOnline ? "status-online" : "status-offline";
+  // Per-sensor online status: if latest entry is <3min old, it's online
+  const now = new Date();
+  let anyOnline = false;
+  sensorIds.forEach(sid => {
+    const lastTs = lastTimestamps[sid];
+    if (lastTs) {
+      const dt = new Date(lastTs);
+      const diffMin = (now - dt) / 60000;
+      sensorOnline[sid] = diffMin < 3;
+      if (sensorOnline[sid]) anyOnline = true;
+    } else {
+      sensorOnline[sid] = false;
+    }
+  });
+
+  // Global data stream status: ONLINE if any sensor is online
+  document.getElementById('stream-status').textContent = anyOnline ? "ONLINE" : "OFFLINE";
+  document.getElementById('stream-status').className = anyOnline ? "status-online" : "status-offline";
+
   // Last update
   if (lastGlobalUpdate) {
     const dt = new Date(lastGlobalUpdate);
@@ -499,6 +514,7 @@ function updateStatusPanel() {
   } else {
     document.getElementById('last-updated').textContent = "--";
   }
+
   // Sensor status
   document.getElementById('sensor-status-list').innerHTML = sensorIds.map((sid, idx) => {
     const online = sensorOnline[sid];
@@ -516,18 +532,16 @@ sensorIds.forEach(sensorId => {
   sensorRef.limitToLast(1000).on('value', snapshot => {
     const data = snapshot.val();
     allData[sensorId] = data || {};
-    // Online status: if latest entry is <3min old, it's online
+    // Get latest timestamp for this sensor
     const timestamps = data ? Object.keys(data) : [];
     if (timestamps.length > 0) {
       const latestTs = timestamps.sort().reverse()[0];
       lastTimestamps[sensorId] = latestTs;
-      const dt = new Date(latestTs);
-      const now = new Date();
-      const diffMin = (now - dt) / 60000;
-      sensorOnline[sensorId] = diffMin < 3;
-      if (!lastGlobalUpdate || dt > new Date(lastGlobalUpdate)) lastGlobalUpdate = latestTs;
+      // Update global last update
+      if (!lastGlobalUpdate || new Date(latestTs) > new Date(lastGlobalUpdate)) {
+        lastGlobalUpdate = latestTs;
+      }
     } else {
-      sensorOnline[sensorId] = false;
       lastTimestamps[sensorId] = null;
     }
     // Update charts and monitors
